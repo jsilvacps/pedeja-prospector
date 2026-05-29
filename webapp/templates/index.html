@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PedeJá Pro">
+<meta name="theme-color" content="#070D1F">
+<title>PedeJá Prospector</title>
+<link rel="manifest" href="/static/manifest.json">
+<style>
+/* ══ Reset & Base ══════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:      #070D1F;
+  --surface: #0C1628;
+  --card:    #0E1829;
+  --border:  #1A2540;
+  --primary: #2563EB;
+  --primary2:#3B82F6;
+  --success: #10B981;
+  --wa:      #25D366;
+  --danger:  #DC2626;
+  --text:    #E2E8F0;
+  --muted:   #64748B;
+  --dim:     #334D7A;
+  --radius:  16px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:15px;}
+
+/* ══ App Shell ════════════════════════════════════════════ */
+#app{display:flex;flex-direction:column;height:100%;max-width:540px;margin:0 auto;position:relative}
+
+/* ══ Header ═══════════════════════════════════════════════ */
+header{
+  background:linear-gradient(135deg,#09122A 0%,#0C1628 60%,#0D1535 100%);
+  border-bottom:1px solid var(--border);
+  padding:14px 18px 12px;
+  display:flex;align-items:center;gap:12px;
+  flex-shrink:0;
+}
+.logo{width:38px;height:38px;background:linear-gradient(135deg,#2563EB,#7C3AED);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;}
+.header-text h1{font-size:17px;font-weight:800;color:#F1F5F9;letter-spacing:-.3px}
+.header-text p{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ══ Tabs Content ═════════════════════════════════════════ */
+main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;}
+section.tab{display:none;padding:14px;flex-direction:column;gap:12px;min-height:100%}
+section.tab.active{display:flex}
+
+/* ══ Bottom Nav ═══════════════════════════════════════════ */
+nav{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--surface);border-top:1px solid var(--border);
+  padding-bottom:var(--safe-bottom);flex-shrink:0;
+}
+nav button{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:10px 4px 8px;background:none;border:none;
+  color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;
+  transition:color .15s;letter-spacing:.3px;
+}
+nav button .icon{font-size:20px;line-height:1}
+nav button.active{color:var(--primary2)}
+nav button.active .icon{filter:drop-shadow(0 0 6px rgba(59,130,246,.5))}
+
+/* ══ Cards ════════════════════════════════════════════════ */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.card-title{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:12px}
+
+/* ══ Form Fields ══════════════════════════════════════════ */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.8px;text-transform:uppercase}
+input,select,textarea{
+  width:100%;background:#080F1E;border:1.5px solid var(--border);
+  border-radius:10px;padding:12px 14px;color:var(--text);
+  font-size:14px;font-family:inherit;outline:none;
+  transition:border-color .15s;appearance:none;-webkit-appearance:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+input::placeholder{color:var(--muted)}
+textarea{resize:vertical;min-height:160px;line-height:1.5}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row-3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+
+/* ══ Buttons ══════════════════════════════════════════════ */
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;
+  width:100%;padding:14px 20px;border:none;border-radius:12px;
+  font-size:15px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
+.btn-primary{background:linear-gradient(180deg,#3B82F6,#2563EB);color:#fff}
+.btn-primary:active{background:#1D4ED8}
+.btn-primary:disabled{background:#111D33;color:#2D3F60;cursor:not-allowed}
+.btn-success{background:linear-gradient(180deg,#34D399,#10B981);color:#022C22}
+.btn-wa{background:linear-gradient(180deg,#25D366,#128C7E);color:#fff}
+.btn-wa:active{opacity:.85}
+.btn-secondary{background:var(--card);color:var(--muted);border:1.5px solid var(--border)}
+.btn-danger{background:#1A0A0A;color:#F87171;border:1.5px solid #7F1D1D}
+.btn-sm{padding:10px 16px;font-size:13px;border-radius:10px;width:auto}
+
+/* ══ Progress ═════════════════════════════════════════════ */
+.progress-wrap{display:flex;flex-direction:column;gap:8px}
+.progress-bar{height:5px;background:#080F1E;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;width:0%;border-radius:3px;
+  background:linear-gradient(90deg,#2563EB,#7C3AED);transition:width .3s}
+.progress-text{font-size:12px;color:var(--muted)}
+
+/* ══ Lead Cards ═══════════════════════════════════════════ */
+#leads-list{display:flex;flex-direction:column;gap:10px}
+.lead-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.lead-card-header{padding:14px 14px 10px;border-bottom:1px solid var(--border)}
+.lead-name{font-size:15px;font-weight:700;color:#F1F5F9}
+.lead-segment{font-size:11px;color:var(--primary2);font-weight:600;
+  background:#1B3363;border-radius:6px;padding:2px 8px;display:inline-block;margin-top:4px}
+.lead-card-body{padding:12px 14px}
+.lead-info{display:flex;flex-direction:column;gap:6px}
+.lead-info-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--muted)}
+.lead-info-row .ico{font-size:14px;flex-shrink:0;margin-top:1px}
+.lead-info-row span{word-break:break-all}
+.lead-actions{display:flex;gap:8px;padding:12px 14px 14px}
+.lead-actions .btn{flex:1}
+
+/* ══ Badge ════════════════════════════════════════════════ */
+.badge{display:inline-block;font-size:11.5px;font-weight:700;
+  border-radius:20px;padding:3px 12px}
+.badge-blue{background:#1B3363;color:#93C5FD}
+.badge-green{background:#052E1E;color:#34D399}
+.badge-muted{background:#111D33;color:var(--muted)}
+
+/* ══ Empty State ══════════════════════════════════════════ */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;padding:48px 20px;text-align:center;color:var(--muted)}
+.empty .big-icon{font-size:52px;opacity:.4}
+.empty p{font-size:14px;line-height:1.5}
+
+/* ══ Toast ════════════════════════════════════════════════ */
+#toast{position:fixed;bottom:calc(70px + var(--safe-bottom) + 12px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#1A2540;border:1px solid #2D4A7A;color:var(--text);
+  padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;
+  white-space:nowrap;opacity:0;transition:.25s;pointer-events:none;z-index:100}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ══ Tip Box ══════════════════════════════════════════════ */
+.tip{font-size:12.5px;color:var(--dim);padding:11px 14px;background:#080F1E;
+  border-radius:10px;border-left:3px solid var(--primary);line-height:1.5}
+
+/* ══ Step cards (Ajuda) ═══════════════════════════════════ */
+.step-card{display:flex;align-items:flex-start;gap:14px;
+  background:#0D1929;border:1px solid var(--border);border-radius:14px;padding:16px}
+.step-num{width:30px;height:30px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;font-size:13px;font-weight:800;
+  color:#fff;flex-shrink:0}
+.step-body h3{font-size:14px;font-weight:700;color:#CBD5E1;margin-bottom:3px}
+.step-body p{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* ══ Scrollbar (desktop) ══════════════════════════════════ */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header>
+    <div class="logo">🍽</div>
+    <div class="header-text">
+      <h1>PedeJá Prospector</h1>
+      <p>Busque leads e envie pelo WhatsApp</p>
+    </div>
+  </header>
+
+  <!-- ── Main Content ───────────────────────────────────── -->
+  <main id="main">
+
+    <!-- Tab: Buscar ──────────────────────────────────── -->
+    <section class="tab active" id="tab-buscar">
+
+      <div class="card">
+        <p class="card-title">Nova Busca</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+
+          <div class="field">
+            <label>O que procurar</label>
+            <input id="segmento" type="text" value="lanchonete" placeholder="Ex: pizzaria, lanchonete…">
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label>Estado</label>
+              <select id="estado"></select>
+            </div>
+            <div class="field">
+              <label>Máx. resultados</label>
+              <select id="max-results">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="30">30</option>
+                <option value="40">40</option>
+                <option value="60">60</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Cidade</label>
+            <input id="cidade-input" type="search" placeholder="Digite para filtrar…" autocomplete="off">
+            <select id="cidade" style="margin-top:6px"></select>
+          </div>
+
+          <button class="btn btn-primary" id="btn-buscar" onclick="startSearch()">
+            🔍 Pesquisar estabelecimentos
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-wrap" id="search-progress" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="progress-text" id="prog-text">Buscando…</span>
+          <span class="badge badge-blue" id="prog-count">0 leads</span>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results-header" style="display:none;align-items:center;justify-content:space-between">
+        <span class="badge badge-green" id="result-badge">0 leads</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success btn-sm" onclick="exportCSV()">📄 CSV</button>
+          <button class="btn btn-secondary btn-sm" style="color:#F87171;border-color:#7F1D1D" onclick="clearResults()">✕ Limpar</button>
+        </div>
+      </div>
+      <div id="leads-list"></div>
+
+      <div class="empty" id="empty-search">
+        <div class="big-icon">🔍</div>
+        <p>Configure sua API Key em <strong>Configurações</strong> e pesquise estabelecimentos.</p>
+      </div>
+
+    </section>
+
+    <!-- Tab: Histórico ─────────────────────────────── -->
+    <section class="tab" id="tab-historico">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="card-title" style="margin:0">Leads salvos</span>
+        <button class="btn btn-secondary btn-sm" onclick="loadHistory()">↺ Atualizar</button>
+      </div>
+      <div id="history-list"></div>
+      <div class="empty" id="empty-history">
+        <div class="big-icon">📋</div>
+        <p>Nenhum lead salvo ainda. Faça uma busca primeiro.</p>
+      </div>
+    </section>
+
+    <!-- Tab: Mensagem ──────────────────────────────── -->
+    <section class="tab" id="tab-mensagem">
+
+      <div class="card">
+        <p class="card-title">Contato selecionado</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="field">
+            <label>Nome</label>
+            <input id="msg-nome" type="text" placeholder="Nome do estabelecimento">
+          </div>
+          <div class="field">
+            <label>Telefone / WhatsApp</label>
+            <input id="msg-phone" type="tel" placeholder="Ex: 19999999999">
+          </div>
+          <button class="btn btn-wa" onclick="openWhatsApp()">
+            📲 Abrir WhatsApp com mensagem
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1">
+        <p class="card-title">Mensagem padrão</p>
+        <textarea id="msg-text" rows="10"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-secondary btn-sm" onclick="saveMessage()">💾 Salvar</button>
+          <button class="btn btn-secondary btn-sm" onclick="resetMessage()">↺ Padrão</button>
+        </div>
+        <p class="tip" style="margin-top:10px">
+          Variáveis: <code style="color:#60A5FA">{nome}</code>
+          <code style="color:#60A5FA">{cidade}</code>
+          <code style="color:#60A5FA">{segmento}</code>
+        </p>
+      </div>
+
+    </section>
+
+    <!-- Tab: Config ────────────────────────────────── -->
+    <section class="tab" id="tab-config">
+
+      <div class="card">
+        <p class="card-title">Google Places API Key</p>
+        <div class="field" style="margin-bottom:10px">
+          <input id="api-key" type="password" placeholder="Cole sua chave aqui…">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveApiKey()">💾 Salvar</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleApiVis()">👁 Ver</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Como usar</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="step-card">
+            <div class="step-num" style="background:#2563EB">1</div>
+            <div class="step-body">
+              <h3>Configure a API Key</h3>
+              <p>Informe sua Google Places API Key acima e salve.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num" style="background:#7C3AED">2</div>
+            <div class="step-body">
+              <h3>Busque estabelecimentos</h3>
+              <p>Vá em Buscar, escolha segmento, estado e cidade.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num" style="background:#0891B2">3</div>
+            <div class="step-body">
+              <h3>Abra o WhatsApp</h3>
+              <p>Toque em 📲 no card do lead para abrir com a mensagem pronta.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num" style="background:#059669">4</div>
+            <div class="step-body">
+              <h3>Personalize a mensagem</h3>
+              <p>Edite o texto padrão na aba Mensagem. Use variáveis para personalizar.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip" style="border-left-color:#D97706;background:#0F0900;color:#92400E">
+        ⚠️ Use contatos públicos com responsabilidade. Evite disparos em massa e respeite a LGPD.
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ── Bottom Nav ─────────────────────────────────────── -->
+  <nav>
+    <button class="active" onclick="switchTab('buscar',this)">
+      <span class="icon">🔍</span>BUSCAR
+    </button>
+    <button onclick="switchTab('historico',this);loadHistory()">
+      <span class="icon">📋</span>HISTÓRICO
+    </button>
+    <button onclick="switchTab('mensagem',this)">
+      <span class="icon">💬</span>MENSAGEM
+    </button>
+    <button onclick="switchTab('config',this)">
+      <span class="icon">⚙️</span>CONFIG
+    </button>
+  </nav>
+
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let currentLeads = [];
+let defaultMessage = `Olá, tudo bem?
+
+Meu nome é Jean e gostaria de apresentar o PedeJá.
+
+O PedeJá não é apenas um cardápio digital. É uma plataforma completa para auxiliar no dia a dia do estabelecimento, com pedidos organizados pelo WhatsApp, controle de caixa, controle de estoque, relatórios de vendas, acompanhamento financeiro e painel administrativo.
+
+Você pode conhecer a demonstração agora mesmo na visão do cliente acessando:
+
+🌐 www.pedeja.dev.br
+
+Caso tenha interesse em conhecer todas as funcionalidades e a área administrativa, podemos agendar uma apresentação rápida e mostrar a plataforma em funcionamento.
+
+Fico à disposição.`;
+
+// ── Init ───────────────────────────────────────────────────
+async function init() {
+  // Load estados
+  const estados = await fetch("/api/estados").then(r => r.json());
+  const sel = document.getElementById("estado");
+  estados.forEach(e => { const o = new Option(e,e); sel.add(o); });
+  sel.value = "SP";
+  sel.addEventListener("change", loadCidades);
+  await loadCidades();
+
+  // City filter
+  document.getElementById("cidade-input").addEventListener("input", filterCidades);
+
+  // Load config
+  const cfg = await fetch("/api/config").then(r => r.json());
+  if (cfg.api_key) document.getElementById("api-key").value = cfg.api_key;
+  document.getElementById("msg-text").value = cfg.message || defaultMessage;
+
+  // Service Worker
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/static/sw.js").catch(()=>{});
+  }
+}
+
+async function loadCidades() {
+  const estado = document.getElementById("estado").value;
+  const cidades = await fetch(`/api/cidades/${estado}`).then(r => r.json());
+  const sel = document.getElementById("cidade");
+  sel.innerHTML = "";
+  cidades.forEach(c => sel.add(new Option(c, c)));
+  document.getElementById("cidade-input").value = "";
+}
+
+function filterCidades() {
+  const q = this.value.toLowerCase();
+  const sel = document.getElementById("cidade");
+  const opts = sel.options;
+  let first = true;
+  for (let o of opts) {
+    const match = o.value.toLowerCase().includes(q);
+    o.style.display = match ? "" : "none";
+    if (match && first) { sel.value = o.value; first = false; }
+  }
+}
+document.getElementById("cidade-input").addEventListener("input", filterCidades);
+
+// ── Tab Switching ──────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll("section.tab").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  btn.classList.add("active");
+  document.getElementById("main").scrollTo(0, 0);
+}
+
+// ── Search ─────────────────────────────────────────────────
+function startSearch() {
+  const apiKey = document.getElementById("api-key").value.trim();
+  if (!apiKey) { toast("⚠️ Configure sua API Key em Configurações"); switchToConfig(); return; }
+  const segmento = document.getElementById("segmento").value.trim();
+  if (!segmento) { toast("⚠️ Informe o que deseja buscar"); return; }
+
+  const estado = document.getElementById("estado").value;
+  const cidade = document.getElementById("cidade").value;
+  const max    = document.getElementById("max-results").value;
+
+  // Reset UI
+  currentLeads = [];
+  document.getElementById("leads-list").innerHTML = "";
+  document.getElementById("results-header").style.display = "none";
+  document.getElementById("empty-search").style.display = "none";
+  document.getElementById("search-progress").style.display = "flex";
+  setProgress(0, "Iniciando busca…");
+  document.getElementById("btn-buscar").disabled = true;
+  document.getElementById("btn-buscar").textContent = "⏳ Buscando…";
+  document.getElementById("prog-count").textContent = "0 leads";
+
+  const params = new URLSearchParams({api_key:apiKey,segmento,estado,cidade,max});
+  const es = new EventSource(`/api/search?${params}`);
+
+  es.addEventListener("lead", e => {
+    const {pct, lead} = JSON.parse(e.data);
+    currentLeads.push(lead);
+    setProgress(pct, `Coletando: ${lead.nome}`);
+    document.getElementById("prog-count").textContent = `${currentLeads.length} leads`;
+    appendLeadCard(lead, currentLeads.length - 1);
+  });
+
+  es.addEventListener("progress", e => {
+    const {pct, msg} = JSON.parse(e.data);
+    setProgress(pct, msg);
+  });
+
+  es.addEventListener("done", e => {
+    es.close();
+    const {total} = JSON.parse(e.data);
+    setProgress(100, "Concluído!");
+    setTimeout(() => {
+      document.getElementById("search-progress").style.display = "none";
+      document.getElementById("btn-buscar").disabled = false;
+      document.getElementById("btn-buscar").textContent = "🔍 Pesquisar estabelecimentos";
+    }, 1200);
+    document.getElementById("result-badge").textContent = `${total} leads`;
+    document.getElementById("result-badge").className = total > 0 ? "badge badge-green" : "badge badge-muted";
+    document.getElementById("results-header").style.display = "flex";
+    if (total === 0) {
+      document.getElementById("empty-search").style.display = "flex";
+      document.getElementById("empty-search").querySelector("p").textContent =
+        "Nenhum resultado encontrado para essa busca. Tente outro segmento ou cidade.";
+    }
+    toast(`✅ ${total} lead(s) encontrado(s)`);
+  });
+
+  es.addEventListener("error", e => {
+    try {
+      const {msg} = JSON.parse(e.data);
+      toast("❌ " + msg);
+    } catch {}
+    es.close();
+    document.getElementById("search-progress").style.display = "none";
+    document.getElementById("btn-buscar").disabled = false;
+    document.getElementById("btn-buscar").textContent = "🔍 Pesquisar estabelecimentos";
+    if (currentLeads.length === 0) document.getElementById("empty-search").style.display = "flex";
+  });
+}
+
+function setProgress(pct, msg) {
+  document.getElementById("prog-fill").style.width = pct + "%";
+  document.getElementById("prog-text").textContent = msg;
+}
+
+function appendLeadCard(lead, idx) {
+  const list = document.getElementById("leads-list");
+  const phone = lead.telefone || "";
+  const phoneNorm = normalizePhone(phone);
+  const wa = phoneNorm ? buildWaUrl(phoneNorm, lead) : null;
+  const maps = lead.maps_url || "";
+
+  const el = document.createElement("div");
+  el.className = "lead-card";
+  el.innerHTML = `
+    <div class="lead-card-header">
+      <div class="lead-name">${esc(lead.nome)}</div>
+      <span class="lead-segment">${esc(lead.segmento)}</span>
+    </div>
+    <div class="lead-card-body">
+      <div class="lead-info">
+        ${lead.endereco ? `<div class="lead-info-row"><span class="ico">📍</span><span>${esc(lead.endereco)}</span></div>` : ""}
+        ${phone ? `<div class="lead-info-row"><span class="ico">📞</span><span>${esc(phone)}</span></div>` : ""}
+        ${lead.site ? `<div class="lead-info-row"><span class="ico">🌐</span><span>${esc(lead.site)}</span></div>` : ""}
+        <div class="lead-info-row"><span class="ico">🏙</span><span>${esc(lead.cidade)} / ${esc(lead.estado)}</span></div>
+      </div>
+    </div>
+    <div class="lead-actions">
+      ${wa ? `<button class="btn btn-wa" onclick="window.open('${wa}','_blank')">📲 WhatsApp</button>` : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
+      ${maps ? `<button class="btn btn-secondary btn-sm" style="flex:0 0 auto" onclick="window.open('${esc(maps)}','_blank')">🗺</button>` : ""}
+      <button class="btn btn-secondary btn-sm" style="flex:0 0 auto" onclick="selectLead(${idx})">✏️</button>
+    </div>`;
+  list.appendChild(el);
+}
+
+function selectLead(idx) {
+  const lead = currentLeads[idx];
+  document.getElementById("msg-nome").value  = lead.nome || "";
+  document.getElementById("msg-phone").value = lead.telefone || "";
+  toast("✏️ Lead carregado na aba Mensagem");
+}
+
+function clearResults() {
+  currentLeads = [];
+  document.getElementById("leads-list").innerHTML = "";
+  document.getElementById("results-header").style.display = "none";
+  document.getElementById("empty-search").style.display = "flex";
+  document.getElementById("empty-search").querySelector("p").textContent =
+    "Configure sua API Key em Configurações e pesquise estabelecimentos.";
+}
+
+// ── History ────────────────────────────────────────────────
+async function loadHistory() {
+  const leads = await fetch("/api/leads").then(r => r.json());
+  const list  = document.getElementById("history-list");
+  const empty = document.getElementById("empty-history");
+  list.innerHTML = "";
+  empty.style.display = leads.length ? "none" : "flex";
+  leads.forEach((l, i) => appendHistoryCard(l, list));
+}
+
+function appendHistoryCard(lead, container) {
+  const phone = lead.telefone || "";
+  const phoneNorm = normalizePhone(phone);
+  const wa = phoneNorm ? buildWaUrl(phoneNorm, lead) : null;
+
+  const el = document.createElement("div");
+  el.className = "lead-card";
+  el.innerHTML = `
+    <div class="lead-card-header">
+      <div class="lead-name">${esc(lead.nome)}</div>
+      <span class="lead-segment">${esc(lead.segmento || "")}</span>
+    </div>
+    <div class="lead-card-body">
+      <div class="lead-info">
+        ${lead.endereco ? `<div class="lead-info-row"><span class="ico">📍</span><span>${esc(lead.endereco)}</span></div>` : ""}
+        ${phone ? `<div class="lead-info-row"><span class="ico">📞</span><span>${esc(phone)}</span></div>` : ""}
+        <div class="lead-info-row"><span class="ico">🏙</span><span>${esc(lead.cidade||"")} / ${esc(lead.estado||"")}</span></div>
+        <div class="lead-info-row"><span class="ico">🕐</span><span>${(lead.created_at||"").replace("T"," ")}</span></div>
+      </div>
+    </div>
+    <div class="lead-actions">
+      ${wa ? `<button class="btn btn-wa" onclick="window.open('${wa}','_blank')">📲 WhatsApp</button>` : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
+    </div>`;
+  container.appendChild(el);
+}
+
+// ── WhatsApp ───────────────────────────────────────────────
+function openWhatsApp() {
+  const phone = normalizePhone(document.getElementById("msg-phone").value);
+  if (!phone) { toast("⚠️ Informe um telefone válido"); return; }
+  window.open(buildWaUrl(phone, {
+    nome:     document.getElementById("msg-nome").value || "seu estabelecimento",
+    cidade:   document.getElementById("estado").value,
+    segmento: document.getElementById("segmento").value,
+  }), "_blank");
+}
+
+function buildWaUrl(phone, lead) {
+  let msg = document.getElementById("msg-text").value;
+  msg = msg.replace("{nome}", lead.nome || "seu estabelecimento")
+           .replace("{cidade}", lead.cidade || "")
+           .replace("{segmento}", lead.segmento || "");
+  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+}
+
+function normalizePhone(raw) {
+  const digits = (raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55")) return digits;
+  if (digits.length === 10 || digits.length === 11) return "55" + digits;
+  return digits;
+}
+
+// ── Config ─────────────────────────────────────────────────
+async function saveApiKey() {
+  const key = document.getElementById("api-key").value.trim();
+  await fetch("/api/config", {method:"POST",headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({api_key: key})});
+  toast("✅ API Key salva!");
+}
+
+function toggleApiVis() {
+  const inp = document.getElementById("api-key");
+  inp.type = inp.type === "password" ? "text" : "password";
+}
+
+async function saveMessage() {
+  const msg = document.getElementById("msg-text").value;
+  await fetch("/api/config", {method:"POST",headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({message: msg})});
+  toast("✅ Mensagem salva!");
+}
+
+function resetMessage() {
+  document.getElementById("msg-text").value = defaultMessage;
+  toast("↺ Mensagem restaurada");
+}
+
+function switchToConfig() {
+  const btn = document.querySelectorAll("nav button")[3];
+  switchTab("config", btn);
+}
+
+// ── Export ─────────────────────────────────────────────────
+function exportCSV() {
+  if (!currentLeads.length) { toast("⚠️ Nenhum lead para exportar"); return; }
+  const data = encodeURIComponent(JSON.stringify(currentLeads));
+  window.open(`/api/export/csv?data=${data}`, "_blank");
+  toast("📄 Baixando CSV…");
+}
+
+// ── Utils ──────────────────────────────────────────────────
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+}
+
+// ── Boot ───────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
