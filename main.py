@@ -27,6 +27,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -694,6 +695,98 @@ class SearchWorker(QThread):
             return {}
 
 
+# ── Profile Messages ───────────────────────────────────────────────────────────
+PROFILE_MSGS = {
+    "sem": (
+        "📵  Sem cardápio digital",
+        "Oi {nome}! Tudo bem?\n\n"
+        "Vi que o *{restaurante}* ainda não tem cardápio digital. "
+        "Montei como ficaria — dá uma olhada aqui: www.pedeja.dev.br\n\n"
+        "Se gostar, posso mostrar a parte administrativa numa conversa rápida. O que acha?"
+    ),
+    "basico": (
+        "📱  Tem cardápio básico",
+        "Oi {nome}! Tudo bem?\n\n"
+        "Vi que o *{restaurante}* já tem presença digital — ótimo sinal. "
+        "O PedeJá pode evoluir isso com pedidos organizados pelo WhatsApp, "
+        "controle financeiro e programa de fidelidade integrado.\n\n"
+        "Vale uma olhada? www.pedeja.dev.br"
+    ),
+    "completo": (
+        "💻  Tem sistema completo",
+        "Oi {nome}! Tudo bem?\n\n"
+        "Vi que o *{restaurante}* já usa cardápio digital — ótimo. "
+        "O PedeJá tem alguns diferenciais que talvez complementem o que você usa: "
+        "programa de fidelidade, impressão automática de pedidos e painel financeiro integrado.\n\n"
+        "Vale comparar rapidinho? www.pedeja.dev.br"
+    ),
+}
+
+
+class ProfileDialog(QDialog):
+    """Diálogo de seleção de perfil antes de abrir o WhatsApp."""
+
+    def __init__(self, nome: str, phone: str, parent=None):
+        super().__init__(parent)
+        self.nome  = nome
+        self.phone = phone
+        self.setWindowTitle("Selecionar perfil")
+        self.setFixedWidth(460)
+        self.setModal(True)
+        self._build()
+
+    def _build(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(12)
+
+        title = QLabel("Como é o estabelecimento?")
+        title.setStyleSheet("font-size:16px;font-weight:800;color:#F1F5F9;")
+        sub = QLabel("Escolha o perfil para enviar a mensagem certa")
+        sub.setStyleSheet("font-size:12px;color:#64748B;")
+        layout.addWidget(title)
+        layout.addWidget(sub)
+
+        # Nome do contato
+        nome_lbl = QLabel("NOME DO CONTATO")
+        nome_lbl.setObjectName("field_label")
+        self.nome_input = QLineEdit(self.nome)
+        self.nome_input.setPlaceholderText("Ex: João, Maria, pessoal…")
+        self.nome_input.setFixedHeight(38)
+        layout.addWidget(nome_lbl)
+        layout.addWidget(self.nome_input)
+
+        layout.addSpacing(4)
+
+        # Profile buttons
+        for key, (label, _) in PROFILE_MSGS.items():
+            btn = QPushButton(label)
+            btn.setObjectName("secondary")
+            btn.setFixedHeight(48)
+            btn.setStyleSheet(
+                "QPushButton#secondary{text-align:left;padding-left:16px;"
+                "font-size:14px;font-weight:700;border-radius:12px;}"
+                "QPushButton#secondary:hover{border-color:#3B82F6;color:#93C5FD;}"
+            )
+            btn.clicked.connect(lambda checked, k=key: self._send(k))
+            layout.addWidget(btn)
+
+        cancel = QPushButton("Cancelar")
+        cancel.setObjectName("secondary")
+        cancel.setFixedHeight(38)
+        cancel.clicked.connect(self.reject)
+        layout.addWidget(cancel)
+
+    def _send(self, profile: str):
+        nome = self.nome_input.text().strip() or "pessoal"
+        restaurante = self.nome
+        _, tmpl = PROFILE_MSGS[profile]
+        msg = tmpl.replace("{nome}", nome).replace("{restaurante}", restaurante)
+        url = f"https://wa.me/{self.phone}?text={urllib.parse.quote(msg)}"
+        webbrowser.open(url)
+        self.accept()
+
+
 # ── Main Window ────────────────────────────────────────────────────────────────
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -1283,14 +1376,10 @@ class MainWindow(QMainWindow):
         if not phone:
             QMessageBox.warning(self, APP_NAME, "Informe um telefone válido antes de abrir o WhatsApp.")
             return
-        nome = self.nome_msg.text().strip() or "seu estabelecimento"
-        cidade = self.cidade_combo.currentText() if hasattr(self, "cidade_combo") else ""
-        segmento = self.segment_input.text().strip() if hasattr(self, "segment_input") else ""
-        msg = self.message_editor.toPlainText()
-        msg = msg.replace("{nome}", nome).replace("{cidade}", cidade).replace("{segmento}", segmento)
-        url = f"https://wa.me/{phone}?text={urllib.parse.quote(msg)}"
-        webbrowser.open(url)
-        self._set_status(f"WhatsApp aberto para {phone}.")
+        nome = self.nome_msg.text().strip() or ""
+        dlg = ProfileDialog(nome, phone, parent=self)
+        if dlg.exec() == QDialog.Accepted:
+            self._set_status(f"WhatsApp aberto para {phone}.")
 
     def _set_status(self, text: str):
         self.status_bar_label.setText(text)

@@ -168,6 +168,35 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ══ Profile Modal (bottom sheet) ════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .22s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.bottom-sheet{
+  background:#0E1829;border:1.5px solid var(--border);
+  border-radius:22px 22px 0 0;width:100%;max-width:540px;
+  padding:0 20px calc(20px + var(--safe-bottom));
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.modal-overlay.show .bottom-sheet{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 20px}
+.sheet-title{font-size:17px;font-weight:800;color:#F1F5F9;margin-bottom:4px}
+.sheet-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.4}
+.profile-options{display:flex;flex-direction:column;gap:8px;margin:14px 0 12px}
+.profile-btn{
+  display:flex;align-items:center;gap:14px;width:100%;
+  background:#080F1E;border:1.5px solid var(--border);border-radius:14px;
+  padding:14px 16px;cursor:pointer;text-align:left;
+  transition:border-color .15s,background .15s;
+}
+.profile-btn:active{border-color:var(--primary);background:#0C1628}
+.profile-ico{font-size:28px;flex-shrink:0;line-height:1}
+.profile-text{flex:1}
+.profile-text strong{display:block;font-size:14px;color:#E2E8F0;font-weight:700;margin-bottom:2px}
+.profile-text span{font-size:12px;color:var(--muted)}
+.profile-arrow{color:var(--dim);font-size:22px;line-height:1}
 </style>
 </head>
 <body>
@@ -378,7 +407,54 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <!-- Toast -->
 <div id="toast"></div>
 
+<!-- Profile Selection Modal -->
+<div class="modal-overlay" id="profile-modal" onclick="overlayClick(event)">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">Como é o estabelecimento?</h2>
+    <p class="sheet-sub">Escolha o perfil para enviar a mensagem certa</p>
+    <div class="field">
+      <label>Nome do contato (para personalizar)</label>
+      <input id="modal-nome" type="text" placeholder="Ex: João, Maria, pessoal…">
+    </div>
+    <div class="profile-options">
+      <button class="profile-btn" onclick="selectProfile('sem')">
+        <span class="profile-ico">📵</span>
+        <div class="profile-text">
+          <strong>Sem cardápio digital</strong>
+          <span>Nunca teve — primeira abordagem</span>
+        </div>
+        <span class="profile-arrow">›</span>
+      </button>
+      <button class="profile-btn" onclick="selectProfile('basico')">
+        <span class="profile-ico">📱</span>
+        <div class="profile-text">
+          <strong>Tem cardápio básico</strong>
+          <span>Só link, PDF ou iFood</span>
+        </div>
+        <span class="profile-arrow">›</span>
+      </button>
+      <button class="profile-btn" onclick="selectProfile('completo')">
+        <span class="profile-ico">💻</span>
+        <div class="profile-text">
+          <strong>Tem sistema completo</strong>
+          <span>Já usa uma plataforma</span>
+        </div>
+        <span class="profile-arrow">›</span>
+      </button>
+    </div>
+    <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+  </div>
+</div>
+
 <script>
+// ── Profile Messages ───────────────────────────────────────
+const PROFILE_MSGS = {
+  sem: `Oi {nome}! Tudo bem?\n\nVi que o *{restaurante}* ainda não tem cardápio digital. Montei como ficaria — dá uma olhada aqui: www.pedeja.dev.br\n\nSe gostar, posso mostrar a parte administrativa numa conversa rápida. O que acha?`,
+  basico: `Oi {nome}! Tudo bem?\n\nVi que o *{restaurante}* já tem presença digital — ótimo sinal. O PedeJá pode evoluir isso com pedidos organizados pelo WhatsApp, controle financeiro e programa de fidelidade integrado.\n\nVale uma olhada? www.pedeja.dev.br`,
+  completo: `Oi {nome}! Tudo bem?\n\nVi que o *{restaurante}* já usa cardápio digital — ótimo. O PedeJá tem alguns diferenciais que talvez complementem o que você usa: programa de fidelidade, impressão automática de pedidos e painel financeiro integrado.\n\nVale comparar rapidinho? www.pedeja.dev.br`
+};
+
 // ── State ──────────────────────────────────────────────────
 let currentLeads = [];
 let defaultMessage = `Olá, tudo bem?
@@ -527,11 +603,11 @@ function setProgress(pct, msg) {
 }
 
 function appendLeadCard(lead, idx) {
-  const list = document.getElementById("leads-list");
+  const list  = document.getElementById("leads-list");
   const phone = lead.telefone || "";
-  const phoneNorm = normalizePhone(phone);
-  const wa = phoneNorm ? buildWaUrl(phoneNorm, lead) : null;
-  const maps = lead.maps_url || "";
+  const maps  = lead.maps_url || "";
+  const nomeJ = esc(lead.nome).replace(/'/g, "\\'");
+  const telJ  = esc(phone).replace(/'/g, "\\'");
 
   const el = document.createElement("div");
   el.className = "lead-card";
@@ -549,7 +625,9 @@ function appendLeadCard(lead, idx) {
       </div>
     </div>
     <div class="lead-actions">
-      ${wa ? `<button class="btn btn-wa" onclick="window.open('${wa}','_blank')">📲 WhatsApp</button>` : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
+      ${phone
+        ? `<button class="btn btn-wa" onclick="showProfileModal('${nomeJ}','${telJ}')">📲 WhatsApp</button>`
+        : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
       ${maps ? `<button class="btn btn-secondary btn-sm" style="flex:0 0 auto" onclick="window.open('${esc(maps)}','_blank')">🗺</button>` : ""}
       <button class="btn btn-secondary btn-sm" style="flex:0 0 auto" onclick="selectLead(${idx})">✏️</button>
     </div>`;
@@ -584,8 +662,8 @@ async function loadHistory() {
 
 function appendHistoryCard(lead, container) {
   const phone = lead.telefone || "";
-  const phoneNorm = normalizePhone(phone);
-  const wa = phoneNorm ? buildWaUrl(phoneNorm, lead) : null;
+  const nomeJ = esc(lead.nome).replace(/'/g, "\\'");
+  const telJ  = esc(phone).replace(/'/g, "\\'");
 
   const el = document.createElement("div");
   el.className = "lead-card";
@@ -603,28 +681,60 @@ function appendHistoryCard(lead, container) {
       </div>
     </div>
     <div class="lead-actions">
-      ${wa ? `<button class="btn btn-wa" onclick="window.open('${wa}','_blank')">📲 WhatsApp</button>` : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
+      ${phone
+        ? `<button class="btn btn-wa" onclick="showProfileModal('${nomeJ}','${telJ}')">📲 WhatsApp</button>`
+        : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
     </div>`;
   container.appendChild(el);
 }
 
-// ── WhatsApp ───────────────────────────────────────────────
-function openWhatsApp() {
-  const phone = normalizePhone(document.getElementById("msg-phone").value);
-  if (!phone) { toast("⚠️ Informe um telefone válido"); return; }
-  window.open(buildWaUrl(phone, {
-    nome:     document.getElementById("msg-nome").value || "seu estabelecimento",
-    cidade:   document.getElementById("estado").value,
-    segmento: document.getElementById("segmento").value,
-  }), "_blank");
+// ── Profile Modal ──────────────────────────────────────────
+let _modalLead = null;
+
+function showProfileModal(nome, telefone) {
+  _modalLead = { nome, telefone };
+  document.getElementById("modal-nome").value = nome || "";
+  document.getElementById("profile-modal").classList.add("show");
 }
 
-function buildWaUrl(phone, lead) {
-  let msg = document.getElementById("msg-text").value;
-  msg = msg.replace("{nome}", lead.nome || "seu estabelecimento")
-           .replace("{cidade}", lead.cidade || "")
-           .replace("{segmento}", lead.segmento || "");
-  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+function overlayClick(e) {
+  if (e.target === document.getElementById("profile-modal")) closeModal();
+}
+
+function closeModal() {
+  document.getElementById("profile-modal").classList.remove("show");
+  _modalLead = null;
+}
+
+function selectProfile(profile) {
+  if (!_modalLead) return;
+  const phone = normalizePhone(_modalLead.telefone || "");
+  if (!phone) { toast("⚠️ Este lead não tem telefone cadastrado"); closeModal(); return; }
+  const nome = document.getElementById("modal-nome").value.trim() || "pessoal";
+  const msg  = PROFILE_MSGS[profile]
+    .replace(/{nome}/g, nome)
+    .replace(/{restaurante}/g, _modalLead.nome || "");
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  closeModal();
+  toast("📲 WhatsApp aberto!");
+}
+
+// ── WhatsApp (aba Mensagem) ────────────────────────────────
+function openWhatsApp() {
+  const nome  = document.getElementById("msg-nome").value.trim();
+  const phone = normalizePhone(document.getElementById("msg-phone").value);
+  if (!phone) { toast("⚠️ Informe um telefone válido"); return; }
+  // Usa seleção de perfil se tiver nome/telefone de um lead
+  if (nome) {
+    showProfileModal(nome, document.getElementById("msg-phone").value);
+  } else {
+    // Fallback: abre com mensagem personalizada do editor
+    let msg = document.getElementById("msg-text").value;
+    msg = msg.replace("{nome}", nome || "pessoal")
+             .replace("{cidade}", document.getElementById("estado").value || "")
+             .replace("{segmento}", document.getElementById("segmento").value || "");
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  }
 }
 
 function normalizePhone(raw) {
