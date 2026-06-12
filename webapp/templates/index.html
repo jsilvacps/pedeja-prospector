@@ -491,7 +491,7 @@ async function init() {
 
   // Service Worker
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/static/sw.js").catch(()=>{});
+    navigator.serviceWorker.register("/static/sw.js?v=3").catch(()=>{});
   }
 }
 
