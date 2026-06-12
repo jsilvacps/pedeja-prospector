@@ -146,6 +146,13 @@ def api_search():
         max_r = int(request.args.get("max", 20))
     except ValueError:
         max_r = 20
+    try:
+        lat = float(request.args.get("lat", ""))
+        lng = float(request.args.get("lng", ""))
+        has_location = True
+    except (ValueError, TypeError):
+        lat = lng = 0.0
+        has_location = False
 
     def generate():
         def send(event: str, data):
@@ -160,10 +167,21 @@ def api_search():
             return
 
         leads: list[dict] = []
-        query = f"{segmento} em {cidade} {estado} Brasil"
-        base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-        params = {"query": query, "key": api_key, "language": "pt-BR", "region": "br"}
         next_token = None
+
+        if has_location:
+            base_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+            params = {
+                "location": f"{lat},{lng}",
+                "rankby": "distance",
+                "keyword": segmento,
+                "key": api_key,
+                "language": "pt-BR",
+            }
+        else:
+            base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+            params = {"query": f"{segmento} em {cidade} {estado} Brasil",
+                      "key": api_key, "language": "pt-BR", "region": "br"}
 
         try:
             while len(leads) < max_r:

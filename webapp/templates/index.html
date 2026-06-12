@@ -533,22 +533,40 @@ function startSearch() {
   const segmento = document.getElementById("segmento").value.trim();
   if (!segmento) { toast("⚠️ Informe o que deseja buscar"); return; }
 
+  document.getElementById("search-progress").style.display = "flex";
+  document.getElementById("btn-buscar").disabled = true;
+  document.getElementById("btn-buscar").textContent = "⏳ Buscando…";
+  setProgress(0, "Detectando localização…");
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => doSearch(pos.coords.latitude, pos.coords.longitude),
+      ()  => doSearch(null, null),
+      {timeout: 6000, maximumAge: 60000}
+    );
+  } else {
+    doSearch(null, null);
+  }
+}
+
+function doSearch(lat, lng) {
+  const apiKey = document.getElementById("api-key").value.trim();
+  const segmento = document.getElementById("segmento").value.trim();
   const estado = document.getElementById("estado").value;
   const cidade = document.getElementById("cidade").value;
   const max    = document.getElementById("max-results").value;
 
-  // Reset UI
   currentLeads = [];
   document.getElementById("leads-list").innerHTML = "";
   document.getElementById("results-header").style.display = "none";
   document.getElementById("empty-search").style.display = "none";
   document.getElementById("search-progress").style.display = "flex";
   setProgress(0, "Iniciando busca…");
-  document.getElementById("btn-buscar").disabled = true;
-  document.getElementById("btn-buscar").textContent = "⏳ Buscando…";
   document.getElementById("prog-count").textContent = "0 leads";
 
-  const params = new URLSearchParams({api_key:apiKey,segmento,estado,cidade,max});
+  const p = {api_key:apiKey, segmento, estado, cidade, max};
+  if (lat !== null && lng !== null) { p.lat = lat; p.lng = lng; }
+  const params = new URLSearchParams(p);
   const es = new EventSource(`/api/search?${params}`);
 
   es.addEventListener("lead", e => {
