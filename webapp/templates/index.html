@@ -411,38 +411,13 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div class="modal-overlay" id="profile-modal" onclick="overlayClick(event)">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
-    <h2 class="sheet-title">Como é o estabelecimento?</h2>
-    <p class="sheet-sub">Escolha o perfil para enviar a mensagem certa</p>
+    <h2 class="sheet-title">Confirmar nome do contato</h2>
+    <p class="sheet-sub">O nome será inserido automaticamente na mensagem</p>
     <div class="field">
       <label>Nome do contato (para personalizar)</label>
       <input id="modal-nome" type="text" placeholder="Ex: João, Maria, pessoal…">
     </div>
-    <div class="profile-options">
-      <button class="profile-btn" onclick="selectProfile('sem')">
-        <span class="profile-ico">📵</span>
-        <div class="profile-text">
-          <strong>Sem cardápio digital</strong>
-          <span>Nunca teve — primeira abordagem</span>
-        </div>
-        <span class="profile-arrow">›</span>
-      </button>
-      <button class="profile-btn" onclick="selectProfile('basico')">
-        <span class="profile-ico">📱</span>
-        <div class="profile-text">
-          <strong>Tem cardápio básico</strong>
-          <span>Só link, PDF ou iFood</span>
-        </div>
-        <span class="profile-arrow">›</span>
-      </button>
-      <button class="profile-btn" onclick="selectProfile('completo')">
-        <span class="profile-ico">💻</span>
-        <div class="profile-text">
-          <strong>Tem sistema completo</strong>
-          <span>Já usa uma plataforma</span>
-        </div>
-        <span class="profile-arrow">›</span>
-      </button>
-    </div>
+    <button class="btn btn-wa" onclick="selectProfile('padrao')" style="margin-bottom:10px">📲 Abrir WhatsApp</button>
     <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
   </div>
 </div>
@@ -450,9 +425,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <script>
 // ── Profile Messages ───────────────────────────────────────
 const PROFILE_MSGS = {
-  sem: `Oi {nome}! Tudo bem?\n\nVi que o *{restaurante}* ainda não tem cardápio digital. Montei como ficaria — dá uma olhada aqui: www.pedeja.dev.br\n\nSe gostar, posso mostrar a parte administrativa numa conversa rápida. O que acha?`,
-  basico: `Oi {nome}! Tudo bem?\n\nVi que o *{restaurante}* já tem presença digital — ótimo sinal. O PedeJá pode evoluir isso com pedidos organizados pelo WhatsApp, controle financeiro e programa de fidelidade integrado.\n\nVale uma olhada? www.pedeja.dev.br`,
-  completo: `Oi {nome}! Tudo bem?\n\nVi que o *{restaurante}* já usa cardápio digital — ótimo. O PedeJá tem alguns diferenciais que talvez complementem o que você usa: programa de fidelidade, impressão automática de pedidos e painel financeiro integrado.\n\nVale comparar rapidinho? www.pedeja.dev.br`
+  padrao: `Olá, {nome}, tudo bem?\n\nTrabalho com uma plataforma de cardápio digital e acredito que ela pode ajudar bastante no atendimento e na organização dos pedidos do seu estabelecimento.\n\nCriei um restaurante de demonstração para você conhecer na prática:\n\n🌐 Site principal:\nhttps://www.pedeja.dev.br/\n\n🍔 Restaurante demonstrativo:\nhttps://www.pedeja.dev.br/restaurantedaluzia\n\nVocê pode navegar pelo cardápio, simular um pedido e ver como funciona a experiência do cliente.\n\nQuando tiver alguns minutos disponíveis, podemos fazer uma rápida videochamada de 10 a 15 minutos. Nela eu mostro a área administrativa, onde os pedidos são recebidos e gerenciados, além da integração com o WhatsApp.\n\nSem compromisso. A ideia é apenas apresentar a solução e entender se ela faz sentido para o seu negócio.`
 };
 
 // ── State ──────────────────────────────────────────────────
