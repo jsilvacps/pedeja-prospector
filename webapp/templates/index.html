@@ -411,13 +411,30 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div class="modal-overlay" id="profile-modal" onclick="overlayClick(event)">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
-    <h2 class="sheet-title">Confirmar nome do contato</h2>
-    <p class="sheet-sub">O nome será inserido automaticamente na mensagem</p>
+    <h2 class="sheet-title">Qual produto deseja apresentar?</h2>
+    <p class="sheet-sub">Escolha o produto e confirme o nome do contato</p>
     <div class="field">
       <label>Nome do contato (para personalizar)</label>
       <input id="modal-nome" type="text" placeholder="Ex: João, Maria, pessoal…">
     </div>
-    <button class="btn btn-wa" onclick="selectProfile('padrao')" style="margin-bottom:10px">📲 Abrir WhatsApp</button>
+    <div class="profile-options">
+      <button class="profile-btn" onclick="selectProfile('pedeja')">
+        <span class="profile-ico">🍔</span>
+        <div class="profile-text">
+          <strong>PedeJá — Cardápio Digital</strong>
+          <span>Para restaurantes e lanchonetes</span>
+        </div>
+        <span class="profile-arrow">›</span>
+      </button>
+      <button class="profile-btn" onclick="selectProfile('drogaria')">
+        <span class="profile-ico">💊</span>
+        <div class="profile-text">
+          <strong>E-commerce Drogaria</strong>
+          <span>Vendas online para farmácias</span>
+        </div>
+        <span class="profile-arrow">›</span>
+      </button>
+    </div>
     <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
   </div>
 </div>
@@ -425,7 +442,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <script>
 // ── Profile Messages ───────────────────────────────────────
 const PROFILE_MSGS = {
-  padrao: `Olá, {nome}, tudo bem?\n\nTrabalho com uma plataforma de cardápio digital e acredito que ela pode ajudar bastante no atendimento e na organização dos pedidos do seu estabelecimento.\n\nCriei um restaurante de demonstração para você conhecer na prática:\n\n🌐 Site principal:\nhttps://www.pedeja.dev.br/\n\n🍔 Restaurante demonstrativo:\nhttps://www.pedeja.dev.br/restaurantedaluzia\n\nVocê pode navegar pelo cardápio, simular um pedido e ver como funciona a experiência do cliente.\n\nQuando tiver alguns minutos disponíveis, podemos fazer uma rápida videochamada de 10 a 15 minutos. Nela eu mostro a área administrativa, onde os pedidos são recebidos e gerenciados, além da integração com o WhatsApp.\n\nSem compromisso. A ideia é apenas apresentar a solução e entender se ela faz sentido para o seu negócio.`
+  pedeja: `Olá, {nome}, tudo bem?\n\nTrabalho com uma plataforma de cardápio digital e acredito que ela pode ajudar bastante no atendimento e na organização dos pedidos do seu estabelecimento.\n\nCriei um restaurante de demonstração para você conhecer na prática:\n\n🌐 Site principal:\nhttps://www.pedeja.dev.br/\n\n🍔 Restaurante demonstrativo:\nhttps://www.pedeja.dev.br/restaurantedaluzia\n\nVocê pode navegar pelo cardápio, simular um pedido e ver como funciona a experiência do cliente.\n\nQuando tiver alguns minutos disponíveis, podemos fazer uma rápida videochamada de 10 a 15 minutos. Nela eu mostro a área administrativa, onde os pedidos são recebidos e gerenciados, além da integração com o WhatsApp.\n\nSem compromisso. A ideia é apenas apresentar a solução e entender se ela faz sentido para o seu negócio.`,
+  drogaria: `Olá, {nome}, tudo bem?\n\nEstou desenvolvendo uma plataforma de vendas online para drogarias, com catálogo de produtos, pedidos pelo WhatsApp e possibilidade de integração com o sistema da loja.\n\nGostaria de apresentar a solução e entender se faz sentido para o seu negócio.\n\nCaso tenha interesse, posso enviar uma proposta comercial sem compromisso.`
 };
 
 // ── State ──────────────────────────────────────────────────

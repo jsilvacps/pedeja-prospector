@@ -613,25 +613,126 @@ def make_logo_pixmap(size: int = 48) -> QPixmap:
 
 
 # ── Search Worker ──────────────────────────────────────────────────────────────
+def get_location_by_windows() -> tuple[float, float] | None:
+    """Tenta obter localização via Windows Location API (GPS/rede, pede permissão)."""
+    try:
+        import winreg  # noqa: F401 — confirma que estamos no Windows
+        import ctypes
+        import ctypes.wintypes
+
+        # Usa a Windows Location API via shell32 / LocationDisp
+        # Fallback leve: tenta via subprocess chamando PowerShell que acessa
+        # Windows.Devices.Geolocation
+        import subprocess, json as _json
+        ps_script = (
+            "Add-Type -AssemblyName System.Device; "
+            "$geo = New-Object System.Device.Location.GeoCoordinateWatcher; "
+            "$geo.Start(); "
+            "Start-Sleep -Seconds 4; "
+            "$c = $geo.Position.Location; "
+            "$geo.Stop(); "
+            "if ($c.IsUnknown) { exit 1 }; "
+            "Write-Output \"{`\"lat`\":$($c.Latitude),`\"lng`\":$($c.Longitude)}\""
+        )
+        result = subprocess.run(
+            ["powershell", "-NonInteractive", "-Command", ps_script],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            data = _json.loads(result.stdout.strip())
+            return data["lat"], data["lng"]
+    except Exception:
+        pass
+    return None
+
+
+def get_location_by_ip() -> tuple[float, float] | None:
+    """Retorna (lat, lng) aproximados via geolocalização por IP."""
+    try:
+        resp = requests.get("http://ip-api.com/json/?fields=lat,lon,status,city", timeout=6)
+        data = resp.json()
+        if data.get("status") == "success":
+            return data["lat"], data["lon"]
+    except Exception:
+        pass
+    return None
+
+
+def get_best_location() -> tuple[tuple[float, float] | None, str]:
+    """Tenta GPS do Windows primeiro, depois IP. Retorna (coords, fonte)."""
+    coords = get_location_by_windows()
+    if coords:
+        return coords, "gps"
+    coords = get_location_by_ip()
+    if coords:
+        return coords, "ip"
+    return None, ""
+
+
 class SearchWorker(QThread):
     progress = Signal(int, str)
     finished = Signal(list)
     failed = Signal(str)
 
-    def __init__(self, api_key: str, segmento: str, estado: str, cidade: str, max_results: int):
+    def __init__(self, api_key: str, segmento: str, estado: str, cidade: str, max_results: int,
+                 cep: str = "", lat: float | None = None, lng: float | None = None):
         super().__init__()
         self.api_key = api_key
         self.segmento = segmento
         self.estado = estado
         self.cidade = cidade
         self.max_results = max_results
+        self.cep = cep.strip()
+        self.lat = lat
+        self.lng = lng
+
+    def _geocode_cep(self) -> tuple[float, float] | None:
+        """Converte CEP em (lat, lng) via Google Geocoding API."""
+        try:
+            resp = requests.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": self.cep, "region": "br", "key": self.api_key},
+                timeout=10,
+            )
+            data = resp.json()
+            if data.get("status") == "OK":
+                loc = data["results"][0]["geometry"]["location"]
+                return loc["lat"], loc["lng"]
+        except Exception:
+            pass
+        return None
 
     def run(self):
         try:
             leads: list[Lead] = []
-            query = f"{self.segmento} em {self.cidade} {self.estado} Brasil"
-            base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-            params: dict = {"query": query, "key": self.api_key, "language": "pt-BR", "region": "br"}
+
+            coords: tuple[float, float] | None = None
+            if self.lat is not None and self.lng is not None:
+                coords = (self.lat, self.lng)
+            elif self.cep:
+                self.progress.emit(2, "Localizando CEP…")
+                coords = self._geocode_cep()
+
+            # Com localização: nearbysearch ordenado por distância
+            # Sem localização: textsearch por cidade/estado
+            if coords:
+                base_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+                params: dict = {
+                    "location": f"{coords[0]},{coords[1]}",
+                    "rankby": "distance",
+                    "keyword": self.segmento,
+                    "key": self.api_key,
+                    "language": "pt-BR",
+                }
+            else:
+                base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+                params = {
+                    "query": f"{self.segmento} em {self.cidade} {self.estado} Brasil",
+                    "key": self.api_key,
+                    "language": "pt-BR",
+                    "region": "br",
+                }
+
             next_page_token: str | None = None
 
             while len(leads) < self.max_results:
@@ -697,41 +798,40 @@ class SearchWorker(QThread):
 
 # ── Profile Messages ───────────────────────────────────────────────────────────
 PROFILE_MSGS = {
-    "sem": (
-        "📵  Sem cardápio digital",
-        "Oi {nome}! Tudo bem?\n\n"
-        "Vi que o *{restaurante}* ainda não tem cardápio digital. "
-        "Montei como ficaria — dá uma olhada aqui: www.pedeja.dev.br\n\n"
-        "Se gostar, posso mostrar a parte administrativa numa conversa rápida. O que acha?"
+    "pedeja": (
+        "🍔  PedeJá — Cardápio Digital",
+        "Olá, {nome}, tudo bem?\n\n"
+        "Trabalho com uma plataforma de cardápio digital e acredito que ela pode ajudar bastante no atendimento e na organização dos pedidos do seu estabelecimento.\n\n"
+        "Criei um restaurante de demonstração para você conhecer na prática:\n\n"
+        "🌐 Site principal:\n"
+        "https://www.pedeja.dev.br/\n\n"
+        "🍔 Restaurante demonstrativo:\n"
+        "https://www.pedeja.dev.br/restaurantedaluzia\n\n"
+        "Você pode navegar pelo cardápio, simular um pedido e ver como funciona a experiência do cliente.\n\n"
+        "Quando tiver alguns minutos disponíveis, podemos fazer uma rápida videochamada de 10 a 15 minutos. "
+        "Nela eu mostro a área administrativa, onde os pedidos são recebidos e gerenciados, além da integração com o WhatsApp.\n\n"
+        "Sem compromisso. A ideia é apenas apresentar a solução e entender se ela faz sentido para o seu negócio."
     ),
-    "basico": (
-        "📱  Tem cardápio básico",
-        "Oi {nome}! Tudo bem?\n\n"
-        "Vi que o *{restaurante}* já tem presença digital — ótimo sinal. "
-        "O PedeJá pode evoluir isso com pedidos organizados pelo WhatsApp, "
-        "controle financeiro e programa de fidelidade integrado.\n\n"
-        "Vale uma olhada? www.pedeja.dev.br"
-    ),
-    "completo": (
-        "💻  Tem sistema completo",
-        "Oi {nome}! Tudo bem?\n\n"
-        "Vi que o *{restaurante}* já usa cardápio digital — ótimo. "
-        "O PedeJá tem alguns diferenciais que talvez complementem o que você usa: "
-        "programa de fidelidade, impressão automática de pedidos e painel financeiro integrado.\n\n"
-        "Vale comparar rapidinho? www.pedeja.dev.br"
+    "drogaria": (
+        "💊  E-commerce Drogaria",
+        "Olá, {nome}, tudo bem?\n\n"
+        "Estou desenvolvendo uma plataforma de vendas online para drogarias, com catálogo de produtos, "
+        "pedidos pelo WhatsApp e possibilidade de integração com o sistema da loja.\n\n"
+        "Gostaria de apresentar a solução e entender se faz sentido para o seu negócio.\n\n"
+        "Caso tenha interesse, posso enviar uma proposta comercial sem compromisso."
     ),
 }
 
 
 class ProfileDialog(QDialog):
-    """Diálogo de seleção de perfil antes de abrir o WhatsApp."""
+    """Diálogo de confirmação do nome antes de abrir o WhatsApp."""
 
     def __init__(self, nome: str, phone: str, parent=None):
         super().__init__(parent)
         self.nome  = nome
         self.phone = phone
-        self.setWindowTitle("Selecionar perfil")
-        self.setFixedWidth(460)
+        self.setWindowTitle("Abrir WhatsApp")
+        self.setFixedWidth(420)
         self.setModal(True)
         self._build()
 
@@ -740,14 +840,13 @@ class ProfileDialog(QDialog):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
 
-        title = QLabel("Como é o estabelecimento?")
+        title = QLabel("Qual produto deseja apresentar?")
         title.setStyleSheet("font-size:16px;font-weight:800;color:#F1F5F9;")
-        sub = QLabel("Escolha o perfil para enviar a mensagem certa")
+        sub = QLabel("Escolha o produto e confirme o nome do contato")
         sub.setStyleSheet("font-size:12px;color:#64748B;")
         layout.addWidget(title)
         layout.addWidget(sub)
 
-        # Nome do contato
         nome_lbl = QLabel("NOME DO CONTATO")
         nome_lbl.setObjectName("field_label")
         self.nome_input = QLineEdit(self.nome)
@@ -756,11 +855,10 @@ class ProfileDialog(QDialog):
         layout.addWidget(nome_lbl)
         layout.addWidget(self.nome_input)
 
-        layout.addSpacing(4)
+        layout.addSpacing(8)
 
-        # Profile buttons
         for key, (label, _) in PROFILE_MSGS.items():
-            btn = QPushButton(label)
+            btn = QPushButton(f"  {label}")
             btn.setObjectName("secondary")
             btn.setFixedHeight(48)
             btn.setStyleSheet(
@@ -771,17 +869,17 @@ class ProfileDialog(QDialog):
             btn.clicked.connect(lambda checked, k=key: self._send(k))
             layout.addWidget(btn)
 
+        layout.addSpacing(4)
         cancel = QPushButton("Cancelar")
         cancel.setObjectName("secondary")
         cancel.setFixedHeight(38)
         cancel.clicked.connect(self.reject)
         layout.addWidget(cancel)
 
-    def _send(self, profile: str):
+    def _send(self, key: str):
         nome = self.nome_input.text().strip() or "pessoal"
-        restaurante = self.nome
-        _, tmpl = PROFILE_MSGS[profile]
-        msg = tmpl.replace("{nome}", nome).replace("{restaurante}", restaurante)
+        _, tmpl = PROFILE_MSGS[key]
+        msg = tmpl.replace("{nome}", nome)
         url = f"https://wa.me/{self.phone}?text={urllib.parse.quote(msg)}"
         webbrowser.open(url)
         self.accept()
@@ -933,6 +1031,24 @@ class MainWindow(QMainWindow):
         self._cidade_completer = None
         self._refresh_cidades()
 
+        self.cep_input = QLineEdit()
+        self.cep_input.setPlaceholderText("00000-000  (opcional)")
+        self.cep_input.setFixedHeight(38)
+        self.cep_input.setFixedWidth(120)
+        self.cep_input.setMaxLength(9)
+        self.cep_input.setText(self.config.get("cep", ""))
+        self.cep_input.textChanged.connect(self._format_cep)
+
+        self._auto_lat: float | None = None
+        self._auto_lng: float | None = None
+
+        self.loc_btn = QPushButton("📍")
+        self.loc_btn.setObjectName("icon_btn")
+        self.loc_btn.setToolTip("Detectar minha localização automaticamente")
+        self.loc_btn.setFixedHeight(38)
+        self.loc_btn.setFixedWidth(38)
+        self.loc_btn.clicked.connect(self._detect_location)
+
         self.max_spin = QSpinBox()
         self.max_spin.setRange(1, 60)
         self.max_spin.setValue(20)
@@ -958,19 +1074,30 @@ class MainWindow(QMainWindow):
         export_csv_btn.setFixedHeight(38)
         export_csv_btn.clicked.connect(self._export_csv)
 
+        cep_lbl = field_label("LOCALIZAÇÃO")
         form.addWidget(field_label("O QUE PROCURAR"), 0, 0)
         form.addWidget(field_label("ESTADO"), 0, 1)
         form.addWidget(field_label("CIDADE"), 0, 2)
-        form.addWidget(field_label("MÁX."), 0, 3)
+        form.addWidget(cep_lbl, 0, 3, 1, 2)
+        form.addWidget(field_label("MÁX."), 0, 5)
 
-        form.addWidget(self.segment_input, 1, 0)
-        form.addWidget(self.estado_combo,  1, 1)
-        form.addWidget(self.cidade_combo,  1, 2)
-        form.addWidget(self.max_spin,      1, 3)
-        form.addWidget(self.search_btn,    1, 4)
-        form.addWidget(export_xlsx_btn,    1, 5)
-        form.addWidget(export_csv_btn,     1, 6)
-        form.addWidget(self.clear_btn,     1, 7)
+        cep_row = QHBoxLayout()
+        cep_row.setSpacing(4)
+        cep_row.setContentsMargins(0, 0, 0, 0)
+        cep_row.addWidget(self.cep_input)
+        cep_row.addWidget(self.loc_btn)
+        cep_container = QWidget()
+        cep_container.setLayout(cep_row)
+
+        form.addWidget(self.segment_input,  1, 0)
+        form.addWidget(self.estado_combo,   1, 1)
+        form.addWidget(self.cidade_combo,   1, 2)
+        form.addWidget(cep_container,       1, 3, 1, 2)
+        form.addWidget(self.max_spin,       1, 5)
+        form.addWidget(self.search_btn,     1, 6)
+        form.addWidget(export_xlsx_btn,     1, 7)
+        form.addWidget(export_csv_btn,      1, 8)
+        form.addWidget(self.clear_btn,      1, 9)
 
         form.setColumnStretch(0, 3)
         form.setColumnStretch(1, 1)
@@ -1237,6 +1364,40 @@ class MainWindow(QMainWindow):
             self.cidade_combo.setCurrentIndex(0)
         self.cidade_combo.blockSignals(False)
 
+    def _detect_location(self):
+        self.loc_btn.setEnabled(False)
+        self.loc_btn.setText("⏳")
+        coords, fonte = get_best_location()
+        self.loc_btn.setEnabled(True)
+        self.loc_btn.setText("📍")
+        if coords:
+            self._auto_lat, self._auto_lng = coords
+            self.cep_input.clear()
+            if fonte == "gps":
+                self.cep_input.setPlaceholderText("📍 GPS detectado")
+                self._set_status(f"Localização GPS: {coords[0]:.5f}, {coords[1]:.5f}")
+            else:
+                self.cep_input.setPlaceholderText("📍 Localização por IP (aproximada)")
+                self._set_status(f"Localização por IP (aproximada): {coords[0]:.4f}, {coords[1]:.4f} — para mais precisão, informe o CEP")
+        else:
+            QMessageBox.warning(self, APP_NAME, "Não foi possível detectar a localização automaticamente.\nInforme o CEP manualmente.")
+
+    def _format_cep(self, text: str):
+        # Se o usuário digitou algo, descarta a localização automática
+        if text:
+            self._auto_lat = None
+            self._auto_lng = None
+            self.cep_input.setPlaceholderText("00000-000  (opcional)")
+        digits = "".join(c for c in text if c.isdigit())[:8]
+        if len(digits) > 5:
+            formatted = digits[:5] + "-" + digits[5:]
+        else:
+            formatted = digits
+        if formatted != text:
+            self.cep_input.blockSignals(True)
+            self.cep_input.setText(formatted)
+            self.cep_input.blockSignals(False)
+
     def _start_search(self):
         api_key = self.api_key_input.text().strip()
         if not api_key:
@@ -1247,7 +1408,9 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, APP_NAME, "Informe o que deseja procurar.\nEx: lanchonete, pizzaria…")
             return
 
+        cep = self.cep_input.text().strip()
         self.config["api_key"] = api_key
+        self.config["cep"] = cep
         save_config(self.config)
 
         self.search_btn.setEnabled(False)
@@ -1256,11 +1419,27 @@ class MainWindow(QMainWindow):
         self.status_lbl.setText("Iniciando busca…")
         self.lead_count_badge.setText("— leads")
 
+        # Usa localização automática se disponível, senão tenta detectar
+        lat = self._auto_lat
+        lng = self._auto_lng
+        if lat is None and lng is None and not cep:
+            coords, fonte = get_best_location()
+            if coords:
+                lat, lng = coords
+                self._auto_lat, self._auto_lng = coords
+                if fonte == "gps":
+                    self.cep_input.setPlaceholderText("📍 GPS detectado")
+                else:
+                    self.cep_input.setPlaceholderText("📍 Localização por IP (aproximada)")
+
         self.worker = SearchWorker(
             api_key, segmento,
             self.estado_combo.currentText(),
             self.cidade_combo.currentText(),
             self.max_spin.value(),
+            cep=cep,
+            lat=lat,
+            lng=lng,
         )
         self.worker.progress.connect(self._on_progress)
         self.worker.finished.connect(self._on_finished)
