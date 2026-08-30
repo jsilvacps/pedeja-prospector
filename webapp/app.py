@@ -21,7 +21,11 @@ from flask import Flask, Response, jsonify, render_template, request, send_file,
 BASE_DIR  = Path(__file__).parent.parent
 IS_CLOUD  = os.getenv("RENDER") == "true" or os.getenv("RAILWAY_ENVIRONMENT") is not None
 
-if IS_CLOUD:
+if os.getenv("DATA_DIR"):
+    # Render com disco persistente montado em /var/data
+    APP_DIR = Path(os.getenv("DATA_DIR")) / "Disparador"
+elif IS_CLOUD:
+    # Fallback sem disco (efêmero)
     APP_DIR = Path("/tmp/Disparador")
 else:
     APP_DIR = Path(os.getenv("APPDATA", str(Path.home()))) / "Disparador"
