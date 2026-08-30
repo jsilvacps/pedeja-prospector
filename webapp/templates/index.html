@@ -6,789 +6,851 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PedeJá Pro">
-<meta name="theme-color" content="#070D1F">
-<title>PedeJá Prospector</title>
+<meta name="apple-mobile-web-app-title" content="Disparador">
+<meta name="theme-color" content="#060C1A">
+<title>Disparador de Conteúdo</title>
 <link rel="manifest" href="/static/manifest.json">
 <style>
-/* ══ Reset & Base ══════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:      #070D1F;
-  --surface: #0C1628;
-  --card:    #0E1829;
-  --border:  #1A2540;
-  --primary: #2563EB;
-  --primary2:#3B82F6;
+  --bg:      #060C1A;
+  --surface: #0A1220;
+  --card:    #0D1526;
+  --border:  #172035;
+  --primary: #6366F1;
+  --primary2:#818CF8;
   --success: #10B981;
   --wa:      #25D366;
-  --danger:  #DC2626;
+  --ig:      #E1306C;
+  --danger:  #EF4444;
+  --warn:    #F59E0B;
   --text:    #E2E8F0;
   --muted:   #64748B;
-  --dim:     #334D7A;
+  --dim:     #2D4060;
   --radius:  16px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
-  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:15px;}
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:15px}
 
-/* ══ App Shell ════════════════════════════════════════════ */
-#app{display:flex;flex-direction:column;height:100%;max-width:540px;margin:0 auto;position:relative}
+#app{display:flex;flex-direction:column;height:100%;max-width:540px;margin:0 auto}
 
-/* ══ Header ═══════════════════════════════════════════════ */
+/* Header */
 header{
-  background:linear-gradient(135deg,#09122A 0%,#0C1628 60%,#0D1535 100%);
+  background:linear-gradient(135deg,#08112B,#0A1628);
   border-bottom:1px solid var(--border);
   padding:14px 18px 12px;
-  display:flex;align-items:center;gap:12px;
-  flex-shrink:0;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
 }
-.logo{width:38px;height:38px;background:linear-gradient(135deg,#2563EB,#7C3AED);
-  border-radius:10px;display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;}
+.logo{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0;
+  background:linear-gradient(135deg,#6366F1,#EC4899)}
 .header-text h1{font-size:17px;font-weight:800;color:#F1F5F9;letter-spacing:-.3px}
 .header-text p{font-size:11px;color:var(--muted);margin-top:1px}
 
-/* ══ Tabs Content ═════════════════════════════════════════ */
-main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;}
+/* Main / Tabs */
+main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 section.tab{display:none;padding:14px;flex-direction:column;gap:12px;min-height:100%}
 section.tab.active{display:flex}
 
-/* ══ Bottom Nav ═══════════════════════════════════════════ */
-nav{
-  display:grid;grid-template-columns:repeat(4,1fr);
+/* Nav */
+nav{display:grid;grid-template-columns:repeat(3,1fr);
   background:var(--surface);border-top:1px solid var(--border);
-  padding-bottom:var(--safe-bottom);flex-shrink:0;
-}
-nav button{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding-bottom:var(--safe-bottom);flex-shrink:0}
+nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;padding:10px 4px 8px;background:none;border:none;
-  color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;
-  transition:color .15s;letter-spacing:.3px;
-}
-nav button .icon{font-size:20px;line-height:1}
+  color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;transition:color .15s;letter-spacing:.3px}
+nav button .icon{font-size:22px;line-height:1}
 nav button.active{color:var(--primary2)}
-nav button.active .icon{filter:drop-shadow(0 0 6px rgba(59,130,246,.5))}
+nav button.active .icon{filter:drop-shadow(0 0 6px rgba(129,140,248,.55))}
 
-/* ══ Cards ════════════════════════════════════════════════ */
+/* Cards */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
 .card-title{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;
   text-transform:uppercase;margin-bottom:12px}
 
-/* ══ Form Fields ══════════════════════════════════════════ */
+/* Fields */
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.8px;text-transform:uppercase}
 input,select,textarea{
-  width:100%;background:#080F1E;border:1.5px solid var(--border);
-  border-radius:10px;padding:12px 14px;color:var(--text);
-  font-size:14px;font-family:inherit;outline:none;
-  transition:border-color .15s;appearance:none;-webkit-appearance:none;
-}
+  width:100%;background:#07101E;border:1.5px solid var(--border);border-radius:10px;
+  padding:12px 14px;color:var(--text);font-size:14px;font-family:inherit;
+  outline:none;transition:border-color .15s;appearance:none;-webkit-appearance:none}
 input:focus,select:focus,textarea:focus{border-color:var(--primary)}
 input::placeholder{color:var(--muted)}
-textarea{resize:vertical;min-height:160px;line-height:1.5}
+textarea{resize:vertical;min-height:120px;line-height:1.55}
+input[type=datetime-local]{color-scheme:dark}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
-
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.row-3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
 
-/* ══ Buttons ══════════════════════════════════════════════ */
+/* Buttons */
 .btn{display:flex;align-items:center;justify-content:center;gap:7px;
   width:100%;padding:14px 20px;border:none;border-radius:12px;
   font-size:15px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
-.btn-primary{background:linear-gradient(180deg,#3B82F6,#2563EB);color:#fff}
-.btn-primary:active{background:#1D4ED8}
-.btn-primary:disabled{background:#111D33;color:#2D3F60;cursor:not-allowed}
+.btn-primary{background:linear-gradient(180deg,#818CF8,#6366F1);color:#fff}
+.btn-primary:active{opacity:.85}
+.btn-primary:disabled{background:#0F1630;color:#2D3A7A;cursor:not-allowed}
 .btn-success{background:linear-gradient(180deg,#34D399,#10B981);color:#022C22}
-.btn-wa{background:linear-gradient(180deg,#25D366,#128C7E);color:#fff}
-.btn-wa:active{opacity:.85}
 .btn-secondary{background:var(--card);color:var(--muted);border:1.5px solid var(--border)}
-.btn-danger{background:#1A0A0A;color:#F87171;border:1.5px solid #7F1D1D}
-.btn-sm{padding:10px 16px;font-size:13px;border-radius:10px;width:auto}
+.btn-danger{background:#1A0808;color:#FCA5A5;border:1.5px solid #7F1D1D}
+.btn-sm{padding:9px 14px;font-size:13px;border-radius:10px;width:auto}
 
-/* ══ Progress ═════════════════════════════════════════════ */
-.progress-wrap{display:flex;flex-direction:column;gap:8px}
-.progress-bar{height:5px;background:#080F1E;border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;width:0%;border-radius:3px;
-  background:linear-gradient(90deg,#2563EB,#7C3AED);transition:width .3s}
-.progress-text{font-size:12px;color:var(--muted)}
+/* Upload Zone */
+#upload-zone{
+  border:2px dashed var(--border);border-radius:14px;padding:28px 20px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;cursor:pointer;transition:border-color .2s,background .2s;
+  text-align:center;
+}
+#upload-zone:hover,#upload-zone.drag-over{border-color:var(--primary);background:#0D112A}
+#upload-zone .zone-ico{font-size:42px;opacity:.5}
+#upload-zone .zone-text{font-size:13px;color:var(--muted)}
+#upload-zone .zone-hint{font-size:11px;color:var(--dim)}
+#upload-zone.has-file{border-color:var(--success);background:#041A12}
+#file-input{display:none}
 
-/* ══ Lead Cards ═══════════════════════════════════════════ */
-#leads-list{display:flex;flex-direction:column;gap:10px}
-.lead-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.lead-card-header{padding:14px 14px 10px;border-bottom:1px solid var(--border)}
-.lead-name{font-size:15px;font-weight:700;color:#F1F5F9}
-.lead-segment{font-size:11px;color:var(--primary2);font-weight:600;
-  background:#1B3363;border-radius:6px;padding:2px 8px;display:inline-block;margin-top:4px}
-.lead-card-body{padding:12px 14px}
-.lead-info{display:flex;flex-direction:column;gap:6px}
-.lead-info-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--muted)}
-.lead-info-row .ico{font-size:14px;flex-shrink:0;margin-top:1px}
-.lead-info-row span{word-break:break-all}
-.lead-actions{display:flex;gap:8px;padding:12px 14px 14px}
-.lead-actions .btn{flex:1}
+/* Media preview */
+#media-preview{display:none;flex-direction:column;gap:10px}
+#preview-img{width:100%;border-radius:12px;max-height:240px;object-fit:cover}
+#preview-vid{width:100%;border-radius:12px;max-height:240px}
+.file-info{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:#07101E;border:1px solid var(--border);border-radius:10px}
+.file-info .file-ico{font-size:24px}
+.file-info .file-name{flex:1;font-size:13px;font-weight:600;color:#CBD5E1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-info .file-size{font-size:11px;color:var(--muted);flex-shrink:0}
 
-/* ══ Badge ════════════════════════════════════════════════ */
-.badge{display:inline-block;font-size:11.5px;font-weight:700;
-  border-radius:20px;padding:3px 12px}
-.badge-blue{background:#1B3363;color:#93C5FD}
-.badge-green{background:#052E1E;color:#34D399}
+/* Destination Toggles */
+.dest-grid{display:flex;flex-direction:column;gap:8px}
+.dest-item{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:#07101E;border:1.5px solid var(--border);border-radius:12px;
+  cursor:pointer;transition:border-color .15s,background .15s;user-select:none;
+}
+.dest-item.active{border-color:var(--primary);background:#0D1230}
+.dest-item.active-wa{border-color:var(--wa);background:#041409}
+.dest-item.active-ig{border-color:var(--ig);background:#1A060D}
+.dest-ico{font-size:26px;flex-shrink:0}
+.dest-body{flex:1}
+.dest-name{font-size:14px;font-weight:700;color:#CBD5E1}
+.dest-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.dest-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:background .15s,border-color .15s;font-size:13px}
+.dest-item.active .dest-check,.dest-item.active-wa .dest-check,.dest-item.active-ig .dest-check
+  {background:var(--primary);border-color:var(--primary);color:#fff}
+.dest-item.active-wa .dest-check{background:var(--wa);border-color:var(--wa)}
+.dest-item.active-ig .dest-check{background:var(--ig);border-color:var(--ig)}
+.dest-item.disabled{opacity:.4;cursor:not-allowed}
+
+/* WA Group Selector */
+#wa-group-section{display:none}
+.group-search{position:relative;margin-bottom:8px}
+.group-search input{padding-left:36px}
+.group-search::before{content:"🔍";position:absolute;left:12px;top:50%;
+  transform:translateY(-50%);font-size:14px;pointer-events:none}
+.group-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+.group-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:#07101E;border:1.5px solid var(--border);border-radius:10px;
+  cursor:pointer;transition:border-color .15s;
+}
+.group-item.selected{border-color:var(--wa);background:#041409}
+.group-item .g-ico{font-size:18px;flex-shrink:0}
+.group-item .g-name{flex:1;font-size:13px;font-weight:600;color:#CBD5E1}
+.group-item .g-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.group-item.selected .g-check{background:var(--wa);border-color:var(--wa);color:#fff}
+
+/* Post Cards */
+.post-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.post-card-img{width:100%;height:140px;object-fit:cover}
+.post-card-body{padding:12px 14px}
+.post-status{display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:8px}
+.s-pending{background:#0D1A3A;color:#93C5FD}
+.s-sending{background:#0F1E10;color:#34D399}
+.s-sent{background:#052E1E;color:#34D399}
+.s-failed{background:#2A0808;color:#FCA5A5}
+.s-partial{background:#1C1000;color:#FCD34D}
+.post-caption{font-size:13px;color:#CBD5E1;line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.post-time{font-size:11px;color:var(--muted);margin-top:6px}
+.post-dests{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.dest-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+.tag-wa{background:#042B0E;color:#4ADE80}
+.tag-ig{background:#2A0615;color:#F472B6}
+.post-actions{display:flex;gap:8px;padding:10px 14px 12px}
+.post-actions .btn{flex:1}
+
+/* Result detail */
+.result-detail{margin-top:8px;padding:8px 10px;background:#07101E;border-radius:8px;
+  font-size:11px;color:var(--muted);line-height:1.6}
+
+/* Progress dots */
+.dot-anim::after{content:"...";animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%,100%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
+/* Badge / Empty */
+.badge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:20px;padding:3px 12px}
 .badge-muted{background:#111D33;color:var(--muted)}
-
-/* ══ Empty State ══════════════════════════════════════════ */
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:12px;padding:48px 20px;text-align:center;color:var(--muted)}
 .empty .big-icon{font-size:52px;opacity:.4}
 .empty p{font-size:14px;line-height:1.5}
 
-/* ══ Toast ════════════════════════════════════════════════ */
-#toast{position:fixed;bottom:calc(70px + var(--safe-bottom) + 12px);left:50%;
+/* Toast */
+#toast{position:fixed;bottom:calc(64px + var(--safe-bottom) + 12px);left:50%;
   transform:translateX(-50%) translateY(20px);
   background:#1A2540;border:1px solid #2D4A7A;color:var(--text);
   padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;
   white-space:nowrap;opacity:0;transition:.25s;pointer-events:none;z-index:100}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ══ Tip Box ══════════════════════════════════════════════ */
-.tip{font-size:12.5px;color:var(--dim);padding:11px 14px;background:#080F1E;
+/* Tip */
+.tip{font-size:12.5px;color:var(--dim);padding:10px 14px;background:#07101E;
   border-radius:10px;border-left:3px solid var(--primary);line-height:1.5}
 
-/* ══ Step cards (Ajuda) ═══════════════════════════════════ */
-.step-card{display:flex;align-items:flex-start;gap:14px;
-  background:#0D1929;border:1px solid var(--border);border-radius:14px;padding:16px}
-.step-num{width:30px;height:30px;border-radius:50%;display:flex;
-  align-items:center;justify-content:center;font-size:13px;font-weight:800;
-  color:#fff;flex-shrink:0}
-.step-body h3{font-size:14px;font-weight:700;color:#CBD5E1;margin-bottom:3px}
-.step-body p{font-size:12.5px;color:var(--muted);line-height:1.5}
-
-/* ══ Scrollbar (desktop) ══════════════════════════════════ */
+/* Scrollbar */
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-
-/* ══ Profile Modal (bottom sheet) ════════════════════════ */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
-  display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .22s}
-.modal-overlay.show{opacity:1;pointer-events:all}
-.bottom-sheet{
-  background:#0E1829;border:1.5px solid var(--border);
-  border-radius:22px 22px 0 0;width:100%;max-width:540px;
-  padding:0 20px calc(20px + var(--safe-bottom));
-  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-}
-.modal-overlay.show .bottom-sheet{transform:translateY(0)}
-.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 20px}
-.sheet-title{font-size:17px;font-weight:800;color:#F1F5F9;margin-bottom:4px}
-.sheet-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.4}
-.profile-options{display:flex;flex-direction:column;gap:8px;margin:14px 0 12px}
-.profile-btn{
-  display:flex;align-items:center;gap:14px;width:100%;
-  background:#080F1E;border:1.5px solid var(--border);border-radius:14px;
-  padding:14px 16px;cursor:pointer;text-align:left;
-  transition:border-color .15s,background .15s;
-}
-.profile-btn:active{border-color:var(--primary);background:#0C1628}
-.profile-ico{font-size:28px;flex-shrink:0;line-height:1}
-.profile-text{flex:1}
-.profile-text strong{display:block;font-size:14px;color:#E2E8F0;font-weight:700;margin-bottom:2px}
-.profile-text span{font-size:12px;color:var(--muted)}
-.profile-arrow{color:var(--dim);font-size:22px;line-height:1}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- ── Header ─────────────────────────────────────────── -->
-  <header>
-    <div class="logo">🍽</div>
-    <div class="header-text">
-      <h1>PedeJá Prospector</h1>
-      <p>Busque leads e envie pelo WhatsApp</p>
+<header>
+  <div class="logo">📡</div>
+  <div class="header-text">
+    <h1>Disparador</h1>
+    <p>WhatsApp grupos • Instagram</p>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ══ Tab: Criar ══════════════════════════════════════════ -->
+  <section class="tab active" id="tab-criar">
+
+    <!-- Upload -->
+    <div class="card">
+      <p class="card-title">📎 Mídia</p>
+      <div id="upload-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div class="zone-ico">🖼️</div>
+        <div class="zone-text">Toque para selecionar imagem ou vídeo</div>
+        <div class="zone-hint">JPG, PNG, MP4, MOV • máx 200 MB</div>
+      </div>
+      <input type="file" id="file-input" accept="image/*,video/*" onchange="onFileSelected(this)">
+
+      <div id="media-preview">
+        <img id="preview-img" style="display:none">
+        <video id="preview-vid" controls style="display:none"></video>
+        <div class="file-info">
+          <span class="file-ico" id="file-type-ico">🖼️</span>
+          <span class="file-name" id="file-name-label">—</span>
+          <span class="file-size" id="file-size-label">—</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="clearFile()" style="width:auto;align-self:flex-start">
+          ✕ Remover
+        </button>
+      </div>
     </div>
-  </header>
 
-  <!-- ── Main Content ───────────────────────────────────── -->
-  <main id="main">
+    <!-- Caption -->
+    <div class="card">
+      <p class="card-title">✏️ Legenda / Texto</p>
+      <div class="field">
+        <textarea id="caption" placeholder="Digite o texto que acompanha a publicação…"></textarea>
+      </div>
+    </div>
 
-    <!-- Tab: Buscar ──────────────────────────────────── -->
-    <section class="tab active" id="tab-buscar">
+    <!-- Destinations -->
+    <div class="card">
+      <p class="card-title">📤 Destinos</p>
+      <div class="dest-grid" id="dest-grid">
 
-      <div class="card">
-        <p class="card-title">Nova Busca</p>
-        <div style="display:flex;flex-direction:column;gap:10px">
-
-          <div class="field">
-            <label>O que procurar</label>
-            <input id="segmento" type="text" value="lanchonete" placeholder="Ex: pizzaria, lanchonete…">
+        <!-- WhatsApp Grupos -->
+        <div class="dest-item" id="dest-wa" onclick="toggleDest('wa')">
+          <span class="dest-ico">💬</span>
+          <div class="dest-body">
+            <div class="dest-name">WhatsApp Grupos</div>
+            <div class="dest-sub" id="dest-wa-sub">Nenhum grupo selecionado</div>
           </div>
+          <div class="dest-check" id="check-wa">✓</div>
+        </div>
 
-          <div class="row-2">
-            <div class="field">
-              <label>Estado</label>
-              <select id="estado"></select>
+        <!-- Grupos selector -->
+        <div id="wa-group-section">
+          <div class="group-search">
+            <input type="search" id="group-search" placeholder="Filtrar grupos…"
+                   oninput="filterGroups(this.value)" autocomplete="off">
+          </div>
+          <div class="group-list" id="group-list">
+            <div class="empty" style="padding:20px">
+              <p>Carregando grupos…</p>
             </div>
-            <div class="field">
-              <label>Máx. resultados</label>
-              <select id="max-results">
-                <option value="10">10</option>
-                <option value="20" selected>20</option>
-                <option value="30">30</option>
-                <option value="40">40</option>
-                <option value="60">60</option>
-              </select>
-            </div>
           </div>
+        </div>
 
-          <div class="field">
-            <label>Cidade</label>
-            <input id="cidade-input" type="search" placeholder="Digite para filtrar…" autocomplete="off">
-            <select id="cidade" style="margin-top:6px"></select>
+        <!-- IG Feed -->
+        <div class="dest-item" id="dest-ig-feed" onclick="toggleDest('ig-feed')">
+          <span class="dest-ico">📷</span>
+          <div class="dest-body">
+            <div class="dest-name">Instagram Feed</div>
+            <div class="dest-sub">Imagem ou vídeo no perfil</div>
           </div>
+          <div class="dest-check" id="check-ig-feed">✓</div>
+        </div>
 
-          <button class="btn btn-primary" id="btn-buscar" onclick="startSearch()">
-            🔍 Pesquisar estabelecimentos
+        <!-- IG Stories -->
+        <div class="dest-item" id="dest-ig-stories" onclick="toggleDest('ig-stories')">
+          <span class="dest-ico">⭕</span>
+          <div class="dest-body">
+            <div class="dest-name">Instagram Stories</div>
+            <div class="dest-sub">Expira em 24 horas</div>
+          </div>
+          <div class="dest-check" id="check-ig-stories">✓</div>
+        </div>
+
+        <!-- IG Reels -->
+        <div class="dest-item" id="dest-ig-reels" onclick="toggleDest('ig-reels')">
+          <span class="dest-ico">🎬</span>
+          <div class="dest-body">
+            <div class="dest-name">Instagram Reels</div>
+            <div class="dest-sub" id="dest-reels-sub">Apenas para vídeos</div>
+          </div>
+          <div class="dest-check" id="check-ig-reels">✓</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Schedule -->
+    <div class="card">
+      <p class="card-title">🕐 Horário de Envio</p>
+      <div class="row-2">
+        <div class="field">
+          <label>Data e hora</label>
+          <input type="datetime-local" id="schedule-dt">
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="setNow()" style="padding:12px">
+            ⚡ Agora
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- Progress -->
-      <div class="progress-wrap" id="search-progress" style="display:none">
-        <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="progress-text" id="prog-text">Buscando…</span>
-          <span class="badge badge-blue" id="prog-count">0 leads</span>
+    <!-- Submit -->
+    <button class="btn btn-primary" id="btn-agendar" onclick="agendarPost()">
+      📅 Agendar Publicação
+    </button>
+
+    <div class="tip">
+      💡 Sem arquivo? Use o botão <strong>⚡ Agora</strong> para disparar imediatamente.
+    </div>
+
+  </section>
+
+  <!-- ══ Tab: Posts ══════════════════════════════════════════ -->
+  <section class="tab" id="tab-posts">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="card-title" style="margin:0">Publicações</span>
+      <button class="btn btn-secondary btn-sm" onclick="loadPosts()">↺ Atualizar</button>
+    </div>
+    <div id="posts-list"></div>
+    <div class="empty" id="empty-posts" style="display:none">
+      <div class="big-icon">📭</div>
+      <p>Nenhuma publicação ainda.<br>Crie uma na aba <strong>Criar</strong>.</p>
+    </div>
+  </section>
+
+  <!-- ══ Tab: Config ═════════════════════════════════════════ -->
+  <section class="tab" id="tab-config">
+
+    <!-- Evolution API -->
+    <div class="card">
+      <p class="card-title">💬 WhatsApp – Evolution API</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="field">
+          <label>URL da API</label>
+          <input id="evo-url" type="url" placeholder="https://sua-api.exemplo.com">
         </div>
-      </div>
-
-      <!-- Results -->
-      <div id="results-header" style="display:none;align-items:center;justify-content:space-between">
-        <span class="badge badge-green" id="result-badge">0 leads</span>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-success btn-sm" onclick="exportCSV()">📄 CSV</button>
-          <button class="btn btn-secondary btn-sm" style="color:#F87171;border-color:#7F1D1D" onclick="clearResults()">✕ Limpar</button>
+        <div class="field">
+          <label>API Token</label>
+          <input id="evo-token" type="password" placeholder="Token de autenticação">
         </div>
-      </div>
-      <div id="leads-list"></div>
-
-      <div class="empty" id="empty-search">
-        <div class="big-icon">🔍</div>
-        <p>Configure sua API Key em <strong>Configurações</strong> e pesquise estabelecimentos.</p>
-      </div>
-
-    </section>
-
-    <!-- Tab: Histórico ─────────────────────────────── -->
-    <section class="tab" id="tab-historico">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span class="card-title" style="margin:0">Leads salvos</span>
-        <button class="btn btn-secondary btn-sm" onclick="loadHistory()">↺ Atualizar</button>
-      </div>
-      <div id="history-list"></div>
-      <div class="empty" id="empty-history">
-        <div class="big-icon">📋</div>
-        <p>Nenhum lead salvo ainda. Faça uma busca primeiro.</p>
-      </div>
-    </section>
-
-    <!-- Tab: Mensagem ──────────────────────────────── -->
-    <section class="tab" id="tab-mensagem">
-
-      <div class="card">
-        <p class="card-title">Contato selecionado</p>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div class="field">
-            <label>Nome</label>
-            <input id="msg-nome" type="text" placeholder="Nome do estabelecimento">
-          </div>
-          <div class="field">
-            <label>Telefone / WhatsApp</label>
-            <input id="msg-phone" type="tel" placeholder="Ex: 19999999999">
-          </div>
-          <button class="btn btn-wa" onclick="openWhatsApp()">
-            📲 Abrir WhatsApp com mensagem
-          </button>
-        </div>
-      </div>
-
-      <div class="card" style="flex:1">
-        <p class="card-title">Mensagem padrão</p>
-        <textarea id="msg-text" rows="10"></textarea>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn btn-secondary btn-sm" onclick="saveMessage()">💾 Salvar</button>
-          <button class="btn btn-secondary btn-sm" onclick="resetMessage()">↺ Padrão</button>
-        </div>
-        <p class="tip" style="margin-top:10px">
-          Variáveis: <code style="color:#60A5FA">{nome}</code>
-          <code style="color:#60A5FA">{cidade}</code>
-          <code style="color:#60A5FA">{segmento}</code>
-        </p>
-      </div>
-
-    </section>
-
-    <!-- Tab: Config ────────────────────────────────── -->
-    <section class="tab" id="tab-config">
-
-      <div class="card">
-        <p class="card-title">Google Places API Key</p>
-        <div class="field" style="margin-bottom:10px">
-          <input id="api-key" type="password" placeholder="Cole sua chave aqui…">
+        <div class="field">
+          <label>Nome da Instância</label>
+          <input id="evo-instance" type="text" placeholder="Ex: meucelular">
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary btn-sm" onclick="saveApiKey()">💾 Salvar</button>
-          <button class="btn btn-secondary btn-sm" onclick="toggleApiVis()">👁 Ver</button>
+          <button class="btn btn-primary btn-sm" onclick="saveEvo()">💾 Salvar</button>
+          <button class="btn btn-secondary btn-sm" onclick="testEvo()">🔌 Testar</button>
         </div>
+        <div id="evo-status" class="tip" style="display:none"></div>
       </div>
+    </div>
 
-      <div class="card">
-        <p class="card-title">Como usar</p>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div class="step-card">
-            <div class="step-num" style="background:#2563EB">1</div>
-            <div class="step-body">
-              <h3>Configure a API Key</h3>
-              <p>Informe sua Google Places API Key acima e salve.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <div class="step-num" style="background:#7C3AED">2</div>
-            <div class="step-body">
-              <h3>Busque estabelecimentos</h3>
-              <p>Vá em Buscar, escolha segmento, estado e cidade.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <div class="step-num" style="background:#0891B2">3</div>
-            <div class="step-body">
-              <h3>Abra o WhatsApp</h3>
-              <p>Toque em 📲 no card do lead para abrir com a mensagem pronta.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <div class="step-num" style="background:#059669">4</div>
-            <div class="step-body">
-              <h3>Personalize a mensagem</h3>
-              <p>Edite o texto padrão na aba Mensagem. Use variáveis para personalizar.</p>
-            </div>
-          </div>
+    <!-- Instagram -->
+    <div class="card">
+      <p class="card-title">📸 Instagram – Meta Graph API</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="field">
+          <label>Instagram User ID</label>
+          <input id="ig-user-id" type="text" placeholder="Ex: 17841400000000000">
         </div>
+        <div class="field">
+          <label>Access Token (longa duração)</label>
+          <input id="ig-token" type="password" placeholder="EAAxxxxxxx…">
+        </div>
+        <div class="field">
+          <label>URL pública do app</label>
+          <input id="app-url" type="url" placeholder="https://seu-app.onrender.com">
+          <span style="font-size:11px;color:var(--muted);margin-top:3px">
+            Necessária para o Instagram acessar as mídias
+          </span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveIg()">💾 Salvar</button>
+          <button class="btn btn-secondary btn-sm" onclick="testIg()">🔌 Testar</button>
+        </div>
+        <div id="ig-status" class="tip" style="display:none"></div>
       </div>
+    </div>
 
-      <div class="tip" style="border-left-color:#D97706;background:#0F0900;color:#92400E">
-        ⚠️ Use contatos públicos com responsabilidade. Evite disparos em massa e respeite a LGPD.
-      </div>
+    <div class="tip" style="border-left-color:var(--warn);background:#100A00;color:#92400E">
+      ⚠️ Reels e Stories requerem vídeo no formato MP4 (9:16). Feed aceita imagem e vídeo.
+    </div>
 
-    </section>
+  </section>
 
-  </main>
+</main>
 
-  <!-- ── Bottom Nav ─────────────────────────────────────── -->
-  <nav>
-    <button class="active" onclick="switchTab('buscar',this)">
-      <span class="icon">🔍</span>BUSCAR
-    </button>
-    <button onclick="switchTab('historico',this);loadHistory()">
-      <span class="icon">📋</span>HISTÓRICO
-    </button>
-    <button onclick="switchTab('mensagem',this)">
-      <span class="icon">💬</span>MENSAGEM
-    </button>
-    <button onclick="switchTab('config',this)">
-      <span class="icon">⚙️</span>CONFIG
-    </button>
-  </nav>
+<!-- Nav -->
+<nav>
+  <button class="active" onclick="switchTab('criar',this)">
+    <span class="icon">➕</span>CRIAR
+  </button>
+  <button onclick="switchTab('posts',this);loadPosts()">
+    <span class="icon">📅</span>POSTS
+  </button>
+  <button onclick="switchTab('config',this)">
+    <span class="icon">⚙️</span>CONFIG
+  </button>
+</nav>
 
-</div>
-
-<!-- Toast -->
 <div id="toast"></div>
 
-<!-- Profile Selection Modal -->
-<div class="modal-overlay" id="profile-modal" onclick="overlayClick(event)">
-  <div class="bottom-sheet">
-    <div class="sheet-handle"></div>
-    <h2 class="sheet-title">Confirmar nome do contato</h2>
-    <p class="sheet-sub">O nome será inserido automaticamente na mensagem</p>
-    <div class="field">
-      <label>Nome do contato (para personalizar)</label>
-      <input id="modal-nome" type="text" placeholder="Ex: João, Maria, pessoal…">
-    </div>
-    <button class="btn btn-wa" onclick="selectProfile('padrao')" style="margin-bottom:10px">📲 Abrir WhatsApp</button>
-    <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-  </div>
-</div>
-
 <script>
-// ── Profile Messages ───────────────────────────────────────
-const PROFILE_MSGS = {
-  padrao: `Olá, {nome}, tudo bem?\n\nTrabalho com uma plataforma de cardápio digital e acredito que ela pode ajudar bastante no atendimento e na organização dos pedidos do seu estabelecimento.\n\nCriei um restaurante de demonstração para você conhecer na prática:\n\n🌐 Site principal:\nhttps://www.pedeja.dev.br/\n\n🍔 Restaurante demonstrativo:\nhttps://www.pedeja.dev.br/restaurantedaluzia\n\nVocê pode navegar pelo cardápio, simular um pedido e ver como funciona a experiência do cliente.\n\nQuando tiver alguns minutos disponíveis, podemos fazer uma rápida videochamada de 10 a 15 minutos. Nela eu mostro a área administrativa, onde os pedidos são recebidos e gerenciados, além da integração com o WhatsApp.\n\nSem compromisso. A ideia é apenas apresentar a solução e entender se ela faz sentido para o seu negócio.`
-};
+// ══ State ════════════════════════════════════════════════
+let uploadedFile = { filename:"", media_type:"image" };
+let allGroups    = [];
+let selGroups    = [];  // [{id, name}]
+let dests        = { wa:false, "ig-feed":false, "ig-stories":false, "ig-reels":false };
+let postStream   = null;
 
-// ── State ──────────────────────────────────────────────────
-let currentLeads = [];
-let defaultMessage = `Olá, tudo bem?
-
-Meu nome é Jean e gostaria de apresentar o PedeJá.
-
-O PedeJá não é apenas um cardápio digital. É uma plataforma completa para auxiliar no dia a dia do estabelecimento, com pedidos organizados pelo WhatsApp, controle de caixa, controle de estoque, relatórios de vendas, acompanhamento financeiro e painel administrativo.
-
-Você pode conhecer a demonstração agora mesmo na visão do cliente acessando:
-
-🌐 www.pedeja.dev.br
-
-Caso tenha interesse em conhecer todas as funcionalidades e a área administrativa, podemos agendar uma apresentação rápida e mostrar a plataforma em funcionamento.
-
-Fico à disposição.`;
-
-// ── Init ───────────────────────────────────────────────────
+// ══ Init ═════════════════════════════════════════════════
 async function init() {
-  // Load estados
-  const estados = await fetch("/api/estados").then(r => r.json());
-  const sel = document.getElementById("estado");
-  estados.forEach(e => { const o = new Option(e,e); sel.add(o); });
-  sel.value = "SP";
-  sel.addEventListener("change", loadCidades);
-  await loadCidades();
+  setDefaultDateTime();
+  const cfg = await fetch("/api/config").then(r=>r.json());
+  if(cfg.evo_url)      document.getElementById("evo-url").value      = cfg.evo_url;
+  if(cfg.evo_token)    document.getElementById("evo-token").value    = cfg.evo_token;
+  if(cfg.evo_instance) document.getElementById("evo-instance").value = cfg.evo_instance;
+  if(cfg.ig_user_id)   document.getElementById("ig-user-id").value   = cfg.ig_user_id;
+  if(cfg.ig_token)     document.getElementById("ig-token").value     = cfg.ig_token;
+  if(cfg.app_url)      document.getElementById("app-url").value      = cfg.app_url;
 
-  // City filter
-  document.getElementById("cidade-input").addEventListener("input", filterCidades);
-
-  // Load config
-  const cfg = await fetch("/api/config").then(r => r.json());
-  if (cfg.api_key) document.getElementById("api-key").value = cfg.api_key;
-  document.getElementById("msg-text").value = cfg.message || defaultMessage;
-
-  // Service Worker
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/static/sw.js?v=3").catch(()=>{});
-  }
+  if("serviceWorker" in navigator)
+    navigator.serviceWorker.register("/static/sw.js?v=5").catch(()=>{});
 }
 
-async function loadCidades() {
-  const estado = document.getElementById("estado").value;
-  const cidades = await fetch(`/api/cidades/${estado}`).then(r => r.json());
-  const sel = document.getElementById("cidade");
-  sel.innerHTML = "";
-  cidades.forEach(c => sel.add(new Option(c, c)));
-  document.getElementById("cidade-input").value = "";
+function setDefaultDateTime() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() + 5);
+  d.setSeconds(0);
+  const iso = d.toISOString().slice(0,16);
+  document.getElementById("schedule-dt").value = iso;
 }
 
-function filterCidades() {
-  const q = this.value.toLowerCase();
-  const sel = document.getElementById("cidade");
-  const opts = sel.options;
-  let first = true;
-  for (let o of opts) {
-    const match = o.value.toLowerCase().includes(q);
-    o.style.display = match ? "" : "none";
-    if (match && first) { sel.value = o.value; first = false; }
-  }
+function setNow() {
+  const d = new Date();
+  const iso = d.toISOString().slice(0,16);
+  document.getElementById("schedule-dt").value = iso;
 }
-document.getElementById("cidade-input").addEventListener("input", filterCidades);
 
-// ── Tab Switching ──────────────────────────────────────────
+// ══ Tab ══════════════════════════════════════════════════
 function switchTab(name, btn) {
-  document.querySelectorAll("section.tab").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
-  document.getElementById("tab-" + name).classList.add("active");
+  document.querySelectorAll("section.tab").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
   btn.classList.add("active");
-  document.getElementById("main").scrollTo(0, 0);
+  document.getElementById("main").scrollTo(0,0);
 }
 
-// ── Search ─────────────────────────────────────────────────
-function startSearch() {
-  const apiKey = document.getElementById("api-key").value.trim();
-  if (!apiKey) { toast("⚠️ Configure sua API Key em Configurações"); switchToConfig(); return; }
-  const segmento = document.getElementById("segmento").value.trim();
-  if (!segmento) { toast("⚠️ Informe o que deseja buscar"); return; }
+// ══ File Upload ══════════════════════════════════════════
+function dragOver(e) {
+  e.preventDefault();
+  document.getElementById("upload-zone").classList.add("drag-over");
+}
+function dragLeave() {
+  document.getElementById("upload-zone").classList.remove("drag-over");
+}
+function dropFile(e) {
+  e.preventDefault();
+  dragLeave();
+  const file = e.dataTransfer.files[0];
+  if(file) processFile(file);
+}
+function onFileSelected(input) {
+  if(input.files[0]) processFile(input.files[0]);
+}
 
-  document.getElementById("search-progress").style.display = "flex";
-  document.getElementById("btn-buscar").disabled = true;
-  document.getElementById("btn-buscar").textContent = "⏳ Buscando…";
-  setProgress(0, "Detectando localização…");
+async function processFile(file) {
+  // Preview local
+  const isVideo = file.type.startsWith("video/");
+  const isImage = file.type.startsWith("image/");
+  if(!isVideo && !isImage) { toast("❌ Formato não suportado"); return; }
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => doSearch(pos.coords.latitude, pos.coords.longitude),
-      ()  => doSearch(null, null),
-      {timeout: 6000, maximumAge: 60000}
-    );
+  const zone    = document.getElementById("upload-zone");
+  const preview = document.getElementById("media-preview");
+
+  zone.style.display = "none";
+  preview.style.display = "flex";
+
+  const url = URL.createObjectURL(file);
+  if(isImage) {
+    const img = document.getElementById("preview-img");
+    img.src = url; img.style.display = "block";
+    document.getElementById("preview-vid").style.display = "none";
+    document.getElementById("file-type-ico").textContent = "🖼️";
   } else {
-    doSearch(null, null);
+    const vid = document.getElementById("preview-vid");
+    vid.src = url; vid.style.display = "block";
+    document.getElementById("preview-img").style.display = "none";
+    document.getElementById("file-type-ico").textContent = "🎬";
+  }
+  document.getElementById("file-name-label").textContent = file.name;
+  document.getElementById("file-size-label").textContent = formatBytes(file.size);
+
+  // Habilita/desabilita Reels
+  updateReelsAvailability(isVideo);
+
+  // Upload para o servidor
+  toast("⬆️ Enviando arquivo…");
+  const fd = new FormData();
+  fd.append("file", file);
+  const resp = await fetch("/api/upload", {method:"POST", body:fd}).then(r=>r.json());
+  if(!resp.ok) { toast("❌ " + resp.error); clearFile(); return; }
+  uploadedFile = { filename: resp.filename, media_type: resp.media_type };
+  document.getElementById("upload-zone").classList.add("has-file");
+  toast("✅ Arquivo pronto!");
+}
+
+function clearFile() {
+  uploadedFile = { filename:"", media_type:"image" };
+  const zone    = document.getElementById("upload-zone");
+  const preview = document.getElementById("media-preview");
+  zone.style.display = "flex";
+  zone.classList.remove("has-file");
+  preview.style.display = "none";
+  document.getElementById("preview-img").src = "";
+  document.getElementById("preview-vid").src = "";
+  document.getElementById("file-input").value = "";
+  updateReelsAvailability(false);
+}
+
+function updateReelsAvailability(isVideo) {
+  const reelsEl = document.getElementById("dest-ig-reels");
+  const sub     = document.getElementById("dest-reels-sub");
+  if(isVideo) {
+    reelsEl.classList.remove("disabled");
+    sub.textContent = "Vídeo curto no Instagram";
+  } else {
+    reelsEl.classList.add("disabled");
+    if(dests["ig-reels"]) toggleDest("ig-reels"); // desseleciona
+    sub.textContent = "Apenas para vídeos";
   }
 }
 
-function doSearch(lat, lng) {
-  const apiKey = document.getElementById("api-key").value.trim();
-  const segmento = document.getElementById("segmento").value.trim();
-  const estado = document.getElementById("estado").value;
-  const cidade = document.getElementById("cidade").value;
-  const max    = document.getElementById("max-results").value;
+// ══ Destinations ════════════════════════════════════════
+function toggleDest(key) {
+  const el = document.getElementById("dest-"+key);
+  if(el.classList.contains("disabled")) return;
 
-  currentLeads = [];
-  document.getElementById("leads-list").innerHTML = "";
-  document.getElementById("results-header").style.display = "none";
-  document.getElementById("empty-search").style.display = "none";
-  document.getElementById("search-progress").style.display = "flex";
-  setProgress(0, "Iniciando busca…");
-  document.getElementById("prog-count").textContent = "0 leads";
+  dests[key] = !dests[key];
+  const activeClass = key.startsWith("ig") ? "active-ig" :
+                      key === "wa"          ? "active-wa" : "active";
+  el.classList.toggle(activeClass, dests[key]);
+  document.getElementById("check-"+key).textContent = dests[key] ? "✓" : "";
 
-  const p = {api_key:apiKey, segmento, estado, cidade, max};
-  if (lat !== null && lng !== null) { p.lat = lat; p.lng = lng; }
-  const params = new URLSearchParams(p);
-  const es = new EventSource(`/api/search?${params}`);
-
-  es.addEventListener("lead", e => {
-    const {pct, lead} = JSON.parse(e.data);
-    currentLeads.push(lead);
-    setProgress(pct, `Coletando: ${lead.nome}`);
-    document.getElementById("prog-count").textContent = `${currentLeads.length} leads`;
-    appendLeadCard(lead, currentLeads.length - 1);
-  });
-
-  es.addEventListener("progress", e => {
-    const {pct, msg} = JSON.parse(e.data);
-    setProgress(pct, msg);
-  });
-
-  es.addEventListener("done", e => {
-    es.close();
-    const {total} = JSON.parse(e.data);
-    setProgress(100, "Concluído!");
-    setTimeout(() => {
-      document.getElementById("search-progress").style.display = "none";
-      document.getElementById("btn-buscar").disabled = false;
-      document.getElementById("btn-buscar").textContent = "🔍 Pesquisar estabelecimentos";
-    }, 1200);
-    document.getElementById("result-badge").textContent = `${total} leads`;
-    document.getElementById("result-badge").className = total > 0 ? "badge badge-green" : "badge badge-muted";
-    document.getElementById("results-header").style.display = "flex";
-    if (total === 0) {
-      document.getElementById("empty-search").style.display = "flex";
-      document.getElementById("empty-search").querySelector("p").textContent =
-        "Nenhum resultado encontrado para essa busca. Tente outro segmento ou cidade.";
-    }
-    toast(`✅ ${total} lead(s) encontrado(s)`);
-  });
-
-  es.addEventListener("error", e => {
-    try {
-      const {msg} = JSON.parse(e.data);
-      toast("❌ " + msg);
-    } catch {}
-    es.close();
-    document.getElementById("search-progress").style.display = "none";
-    document.getElementById("btn-buscar").disabled = false;
-    document.getElementById("btn-buscar").textContent = "🔍 Pesquisar estabelecimentos";
-    if (currentLeads.length === 0) document.getElementById("empty-search").style.display = "flex";
-  });
+  if(key === "wa") {
+    const section = document.getElementById("wa-group-section");
+    section.style.display = dests.wa ? "block" : "none";
+    if(dests.wa && allGroups.length === 0) loadGroups();
+  }
 }
 
-function setProgress(pct, msg) {
-  document.getElementById("prog-fill").style.width = pct + "%";
-  document.getElementById("prog-text").textContent = msg;
+// ══ Groups ═══════════════════════════════════════════════
+async function loadGroups() {
+  const list = document.getElementById("group-list");
+  list.innerHTML = `<div class="empty" style="padding:16px"><p>Carregando grupos…</p></div>`;
+  const resp = await fetch("/api/wa/groups").then(r=>r.json());
+  if(!resp.ok) {
+    list.innerHTML = `<div class="empty" style="padding:16px"><p style="color:#F87171">❌ ${esc(resp.error)}</p></div>`;
+    return;
+  }
+  allGroups = resp.groups;
+  renderGroups(allGroups);
 }
 
-function appendLeadCard(lead, idx) {
-  const list  = document.getElementById("leads-list");
-  const phone = lead.telefone || "";
-  const maps  = lead.maps_url || "";
-  const nomeJ = esc(lead.nome).replace(/'/g, "\\'");
-  const telJ  = esc(phone).replace(/'/g, "\\'");
-
-  const el = document.createElement("div");
-  el.className = "lead-card";
-  el.innerHTML = `
-    <div class="lead-card-header">
-      <div class="lead-name">${esc(lead.nome)}</div>
-      <span class="lead-segment">${esc(lead.segmento)}</span>
-    </div>
-    <div class="lead-card-body">
-      <div class="lead-info">
-        ${lead.endereco ? `<div class="lead-info-row"><span class="ico">📍</span><span>${esc(lead.endereco)}</span></div>` : ""}
-        ${phone ? `<div class="lead-info-row"><span class="ico">📞</span><span>${esc(phone)}</span></div>` : ""}
-        ${lead.site ? `<div class="lead-info-row"><span class="ico">🌐</span><span>${esc(lead.site)}</span></div>` : ""}
-        <div class="lead-info-row"><span class="ico">🏙</span><span>${esc(lead.cidade)} / ${esc(lead.estado)}</span></div>
-      </div>
-    </div>
-    <div class="lead-actions">
-      ${phone
-        ? `<button class="btn btn-wa" onclick="showProfileModal('${nomeJ}','${telJ}')">📲 WhatsApp</button>`
-        : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
-      ${maps ? `<button class="btn btn-secondary btn-sm" style="flex:0 0 auto" onclick="window.open('${esc(maps)}','_blank')">🗺</button>` : ""}
-      <button class="btn btn-secondary btn-sm" style="flex:0 0 auto" onclick="selectLead(${idx})">✏️</button>
+function renderGroups(groups) {
+  const list = document.getElementById("group-list");
+  if(!groups.length) {
+    list.innerHTML = `<div class="empty" style="padding:16px"><p>Nenhum grupo encontrado</p></div>`;
+    return;
+  }
+  list.innerHTML = groups.map(g => {
+    const sel = selGroups.some(s=>s.id===g.id);
+    return `<div class="group-item${sel?" selected":""}" onclick="toggleGroup('${esc(g.id)}','${esc(g.name)}')">
+      <span class="g-ico">👥</span>
+      <span class="g-name">${esc(g.name)}</span>
+      <span class="g-check">${sel?"✓":""}</span>
     </div>`;
-  list.appendChild(el);
+  }).join("");
 }
 
-function selectLead(idx) {
-  const lead = currentLeads[idx];
-  document.getElementById("msg-nome").value  = lead.nome || "";
-  document.getElementById("msg-phone").value = lead.telefone || "";
-  toast("✏️ Lead carregado na aba Mensagem");
+function filterGroups(q) {
+  const filtered = q ? allGroups.filter(g=>g.name.toLowerCase().includes(q.toLowerCase())) : allGroups;
+  renderGroups(filtered);
 }
 
-function clearResults() {
-  currentLeads = [];
-  document.getElementById("leads-list").innerHTML = "";
-  document.getElementById("results-header").style.display = "none";
-  document.getElementById("empty-search").style.display = "flex";
-  document.getElementById("empty-search").querySelector("p").textContent =
-    "Configure sua API Key em Configurações e pesquise estabelecimentos.";
+function toggleGroup(id, name) {
+  const idx = selGroups.findIndex(g=>g.id===id);
+  if(idx >= 0) selGroups.splice(idx,1);
+  else selGroups.push({id, name});
+
+  const q = document.getElementById("group-search").value;
+  filterGroups(q);
+
+  const sub = document.getElementById("dest-wa-sub");
+  sub.textContent = selGroups.length
+    ? `${selGroups.length} grupo${selGroups.length!==1?"s":""} selecionado${selGroups.length!==1?"s":""}`
+    : "Nenhum grupo selecionado";
 }
 
-// ── History ────────────────────────────────────────────────
-async function loadHistory() {
-  const leads = await fetch("/api/leads").then(r => r.json());
-  const list  = document.getElementById("history-list");
-  const empty = document.getElementById("empty-history");
+// ══ Create Post ══════════════════════════════════════════
+async function agendarPost() {
+  if(!uploadedFile.filename) { toast("⚠️ Selecione uma imagem ou vídeo"); return; }
+  if(!dests.wa && !dests["ig-feed"] && !dests["ig-stories"] && !dests["ig-reels"])
+    { toast("⚠️ Selecione ao menos um destino"); return; }
+  if(dests.wa && selGroups.length === 0) { toast("⚠️ Selecione ao menos um grupo"); return; }
+
+  const dt = document.getElementById("schedule-dt").value;
+  if(!dt) { toast("⚠️ Defina o horário de envio"); return; }
+
+  const btn = document.getElementById("btn-agendar");
+  btn.disabled = true;
+  btn.textContent = "⏳ Agendando…";
+
+  const resp = await fetch("/api/posts", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      filename:    uploadedFile.filename,
+      media_type:  uploadedFile.media_type,
+      caption:     document.getElementById("caption").value.trim(),
+      wa_groups:   dests.wa ? selGroups : [],
+      ig_feed:     dests["ig-feed"],
+      ig_stories:  dests["ig-stories"],
+      ig_reels:    dests["ig-reels"],
+      scheduled_at: dt,
+    }),
+  }).then(r=>r.json());
+
+  btn.disabled = false;
+  btn.textContent = "📅 Agendar Publicação";
+
+  if(!resp.ok) { toast("❌ " + resp.error); return; }
+
+  toast("✅ Publicação agendada!");
+  clearFile();
+  document.getElementById("caption").value = "";
+  setDefaultDateTime();
+
+  // Vai para a aba de posts
+  const btn2 = document.querySelectorAll("nav button")[1];
+  switchTab("posts", btn2);
+  loadPosts();
+  startPostStream();
+}
+
+// ══ Posts List ═══════════════════════════════════════════
+async function loadPosts() {
+  const posts = await fetch("/api/posts").then(r=>r.json());
+  const list  = document.getElementById("posts-list");
+  const empty = document.getElementById("empty-posts");
   list.innerHTML = "";
-  empty.style.display = leads.length ? "none" : "flex";
-  leads.forEach((l, i) => appendHistoryCard(l, list));
+  empty.style.display = posts.length ? "none" : "flex";
+  posts.forEach(p => list.appendChild(buildPostCard(p)));
+  if(posts.some(p=>["pending","sending"].includes(p.status))) startPostStream();
 }
 
-function appendHistoryCard(lead, container) {
-  const phone = lead.telefone || "";
-  const nomeJ = esc(lead.nome).replace(/'/g, "\\'");
-  const telJ  = esc(phone).replace(/'/g, "\\'");
-
+function buildPostCard(p) {
   const el = document.createElement("div");
-  el.className = "lead-card";
-  el.innerHTML = `
-    <div class="lead-card-header">
-      <div class="lead-name">${esc(lead.nome)}</div>
-      <span class="lead-segment">${esc(lead.segmento || "")}</span>
-    </div>
-    <div class="lead-card-body">
-      <div class="lead-info">
-        ${lead.endereco ? `<div class="lead-info-row"><span class="ico">📍</span><span>${esc(lead.endereco)}</span></div>` : ""}
-        ${phone ? `<div class="lead-info-row"><span class="ico">📞</span><span>${esc(phone)}</span></div>` : ""}
-        <div class="lead-info-row"><span class="ico">🏙</span><span>${esc(lead.cidade||"")} / ${esc(lead.estado||"")}</span></div>
-        <div class="lead-info-row"><span class="ico">🕐</span><span>${(lead.created_at||"").replace("T"," ")}</span></div>
-      </div>
-    </div>
-    <div class="lead-actions">
-      ${phone
-        ? `<button class="btn btn-wa" onclick="showProfileModal('${nomeJ}','${telJ}')">📲 WhatsApp</button>`
-        : `<button class="btn btn-secondary" disabled>Sem telefone</button>`}
-    </div>`;
-  container.appendChild(el);
-}
+  el.className = "post-card";
+  el.id = `post-${p.id}`;
 
-// ── Profile Modal ──────────────────────────────────────────
-let _modalLead = null;
+  const result = typeof p.result === "string" ? JSON.parse(p.result||"{}") : (p.result||{});
+  const waGroups = typeof p.wa_groups === "string" ? JSON.parse(p.wa_groups||"[]") : (p.wa_groups||[]);
 
-function showProfileModal(nome, telefone) {
-  _modalLead = { nome, telefone };
-  document.getElementById("modal-nome").value = nome || "";
-  document.getElementById("profile-modal").classList.add("show");
-}
+  const statusMap = {pending:"🕐 Agendado",sending:"📡 Enviando",sent:"✅ Enviado",failed:"❌ Falhou",partial:"⚠️ Parcial"};
+  const classMap  = {pending:"s-pending",sending:"s-sending",sent:"s-sent",failed:"s-failed",partial:"s-partial"};
+  const statusLabel = (statusMap[p.status]||p.status) + (p.status==="sending"?"<span class='dot-anim'></span>":"");
 
-function overlayClick(e) {
-  if (e.target === document.getElementById("profile-modal")) closeModal();
-}
+  // Destinos tags
+  const tags = [];
+  if(waGroups.length) tags.push(`<span class="dest-tag tag-wa">💬 ${waGroups.length} grupo${waGroups.length!==1?"s":""}</span>`);
+  if(p.ig_feed)    tags.push(`<span class="dest-tag tag-ig">📷 Feed</span>`);
+  if(p.ig_stories) tags.push(`<span class="dest-tag tag-ig">⭕ Stories</span>`);
+  if(p.ig_reels)   tags.push(`<span class="dest-tag tag-ig">🎬 Reels</span>`);
 
-function closeModal() {
-  document.getElementById("profile-modal").classList.remove("show");
-  _modalLead = null;
-}
-
-function selectProfile(profile) {
-  if (!_modalLead) return;
-  const phone = normalizePhone(_modalLead.telefone || "");
-  if (!phone) { toast("⚠️ Este lead não tem telefone cadastrado"); closeModal(); return; }
-  const nome = document.getElementById("modal-nome").value.trim() || "pessoal";
-  const msg  = PROFILE_MSGS[profile]
-    .replace(/{nome}/g, nome)
-    .replace(/{restaurante}/g, _modalLead.nome || "");
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-  closeModal();
-  toast("📲 WhatsApp aberto!");
-}
-
-// ── WhatsApp (aba Mensagem) ────────────────────────────────
-function openWhatsApp() {
-  const nome  = document.getElementById("msg-nome").value.trim();
-  const phone = normalizePhone(document.getElementById("msg-phone").value);
-  if (!phone) { toast("⚠️ Informe um telefone válido"); return; }
-  // Usa seleção de perfil se tiver nome/telefone de um lead
-  if (nome) {
-    showProfileModal(nome, document.getElementById("msg-phone").value);
-  } else {
-    // Fallback: abre com mensagem personalizada do editor
-    let msg = document.getElementById("msg-text").value;
-    msg = msg.replace("{nome}", nome || "pessoal")
-             .replace("{cidade}", document.getElementById("estado").value || "")
-             .replace("{segmento}", document.getElementById("segmento").value || "");
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  // Resultado detalhado
+  let resultHtml = "";
+  if(p.status !== "pending" && (Object.keys(result.wa||{}).length || Object.keys(result.ig||{}).length)) {
+    const lines = [];
+    Object.entries(result.wa||{}).forEach(([k,v])=>lines.push(`💬 ${esc(k)}: ${v==="ok"?"✅":"❌ "+esc(v)}`));
+    Object.entries(result.ig||{}).forEach(([k,v])=>lines.push(`📸 ${k}: ${v==="ok"?"✅":"❌ "+esc(v)}`));
+    resultHtml = `<div class="result-detail">${lines.join("<br>")}</div>`;
   }
+
+  el.innerHTML = `
+    <div class="post-card-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span class="post-status ${classMap[p.status]||"s-pending"}">${statusLabel}</span>
+        <span style="font-size:11px;color:var(--muted)">#${p.id}</span>
+      </div>
+      <div class="post-caption">${esc(p.caption||"(sem texto)")}</div>
+      <div class="post-time">📅 ${(p.scheduled_at||"").replace("T"," ")}${p.sent_at?" · Enviado "+p.sent_at.replace("T"," ").slice(0,16):""}</div>
+      <div class="post-dests">${tags.join("")}</div>
+      ${resultHtml}
+    </div>
+    <div class="post-actions">
+      ${p.status==="pending"||p.status==="failed"||p.status==="partial"
+        ? `<button class="btn btn-success btn-sm" onclick="sendNow(${p.id},this)">⚡ Enviar agora</button>`
+        : ""}
+      <button class="btn btn-danger btn-sm" onclick="deletePost(${p.id})">🗑</button>
+    </div>`;
+  return el;
 }
 
-function normalizePhone(raw) {
-  const digits = (raw || "").replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.startsWith("55")) return digits;
-  if (digits.length === 10 || digits.length === 11) return "55" + digits;
-  return digits;
+async function sendNow(id, btn) {
+  btn.disabled = true; btn.textContent = "📡 Enviando…";
+  const resp = await fetch(`/api/posts/${id}/send`, {method:"POST"}).then(r=>r.json());
+  if(!resp.ok) { toast("❌ " + resp.error); btn.disabled=false; btn.textContent="⚡ Enviar agora"; return; }
+  toast("📡 Enviando…");
+  startPostStream();
 }
 
-// ── Config ─────────────────────────────────────────────────
-async function saveApiKey() {
-  const key = document.getElementById("api-key").value.trim();
-  await fetch("/api/config", {method:"POST",headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({api_key: key})});
-  toast("✅ API Key salva!");
+async function deletePost(id) {
+  if(!confirm("Remover esta publicação?")) return;
+  await fetch(`/api/posts/${id}`, {method:"DELETE"});
+  document.getElementById(`post-${id}`)?.remove();
+  const list = document.getElementById("posts-list");
+  if(!list.children.length) document.getElementById("empty-posts").style.display = "flex";
+  toast("🗑 Removido");
 }
 
-function toggleApiVis() {
-  const inp = document.getElementById("api-key");
-  inp.type = inp.type === "password" ? "text" : "password";
+// ══ SSE Stream ═══════════════════════════════════════════
+function startPostStream() {
+  if(postStream) return;
+  postStream = new EventSource("/api/posts/stream");
+  postStream.onmessage = e => {
+    const d = JSON.parse(e.data);
+    const card = document.getElementById(`post-${d.id}`);
+    if(card) {
+      // Substitui o card pelo atualizado
+      fetch("/api/posts").then(r=>r.json()).then(posts => {
+        const p = posts.find(x=>x.id===d.id);
+        if(p) {
+          const newCard = buildPostCard(p);
+          card.replaceWith(newCard);
+        }
+        if(!posts.some(p=>["pending","sending"].includes(p.status))) {
+          postStream?.close(); postStream=null;
+        }
+      });
+    }
+  };
+  postStream.onerror = ()=>{postStream?.close();postStream=null};
 }
 
-async function saveMessage() {
-  const msg = document.getElementById("msg-text").value;
-  await fetch("/api/config", {method:"POST",headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({message: msg})});
-  toast("✅ Mensagem salva!");
+// ══ Config ═══════════════════════════════════════════════
+async function saveEvo() {
+  await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      evo_url:      document.getElementById("evo-url").value.trim(),
+      evo_token:    document.getElementById("evo-token").value.trim(),
+      evo_instance: document.getElementById("evo-instance").value.trim(),
+    })});
+  toast("✅ WhatsApp salvo!");
+  allGroups = []; // força reload dos grupos
 }
 
-function resetMessage() {
-  document.getElementById("msg-text").value = defaultMessage;
-  toast("↺ Mensagem restaurada");
+async function testEvo() {
+  const data = {
+    evo_url:      document.getElementById("evo-url").value.trim(),
+    evo_token:    document.getElementById("evo-token").value.trim(),
+    evo_instance: document.getElementById("evo-instance").value.trim(),
+  };
+  const el = document.getElementById("evo-status");
+  el.style.display="block"; el.textContent="🔌 Testando…"; el.style.borderLeftColor="var(--primary)";
+  const r = await fetch("/api/config/evo-test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}).then(r=>r.json());
+  if(r.ok){ el.style.borderLeftColor="var(--success)"; el.textContent=`✅ Conectado! Estado: ${r.state}`; }
+  else    { el.style.borderLeftColor="var(--danger)";  el.textContent=`❌ ${r.error}`; }
 }
 
-function switchToConfig() {
-  const btn = document.querySelectorAll("nav button")[3];
-  switchTab("config", btn);
+async function saveIg() {
+  await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      ig_user_id: document.getElementById("ig-user-id").value.trim(),
+      ig_token:   document.getElementById("ig-token").value.trim(),
+      app_url:    document.getElementById("app-url").value.trim(),
+    })});
+  toast("✅ Instagram salvo!");
 }
 
-// ── Export ─────────────────────────────────────────────────
-function exportCSV() {
-  if (!currentLeads.length) { toast("⚠️ Nenhum lead para exportar"); return; }
-  const data = encodeURIComponent(JSON.stringify(currentLeads));
-  window.open(`/api/export/csv?data=${data}`, "_blank");
-  toast("📄 Baixando CSV…");
+async function testIg() {
+  const data = {
+    ig_user_id: document.getElementById("ig-user-id").value.trim(),
+    ig_token:   document.getElementById("ig-token").value.trim(),
+  };
+  const el = document.getElementById("ig-status");
+  el.style.display="block"; el.textContent="🔌 Testando…"; el.style.borderLeftColor="var(--primary)";
+  const r = await fetch("/api/config/ig-test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}).then(r=>r.json());
+  if(r.ok){ el.style.borderLeftColor="var(--success)"; el.textContent=`✅ Conta: @${r.username}`; }
+  else    { el.style.borderLeftColor="var(--danger)";  el.textContent=`❌ ${r.error}`; }
 }
 
-// ── Utils ──────────────────────────────────────────────────
-function esc(s) {
+// ══ Utils ════════════════════════════════════════════════
+function esc(s){
   return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
-
-let toastTimer;
-function toast(msg) {
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+function formatBytes(b){
+  if(b<1024) return b+"B";
+  if(b<1048576) return (b/1024).toFixed(1)+"KB";
+  return (b/1048576).toFixed(1)+"MB";
+}
+let _tt;
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.classList.add("show");
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove("show"),2800);
 }
 
-// ── Boot ───────────────────────────────────────────────────
 init();
 </script>
 </body>

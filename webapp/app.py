@@ -1,300 +1,514 @@
 """
-PedeJá Prospector – Web App (PWA)
-Flask backend para uso no celular via Wi-Fi local.
+Disparador de Conteúdo – Web App (PWA)
+Agenda e dispara imagem/vídeo + texto para grupos WhatsApp e Instagram.
 """
-import csv
+import base64
 import io
 import json
 import os
 import re
 import sqlite3
-import sys
+import threading
 import time
-import urllib.parse
-from dataclasses import asdict, dataclass
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
 from flask import Flask, Response, jsonify, render_template, request, send_file, stream_with_context
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-BASE_DIR = Path(__file__).parent.parent          # raiz do projeto
-IS_CLOUD = os.getenv("RENDER") == "true" or os.getenv("RAILWAY_ENVIRONMENT") is not None
+BASE_DIR  = Path(__file__).parent.parent
+IS_CLOUD  = os.getenv("RENDER") == "true" or os.getenv("RAILWAY_ENVIRONMENT") is not None
 
 if IS_CLOUD:
-    # Nuvem: usa /tmp (ephemeral, mas suficiente para sessão)
-    APP_DIR = Path("/tmp/PedeJaProspector")
+    APP_DIR = Path("/tmp/Disparador")
 else:
-    APP_DIR = Path(os.getenv("APPDATA", str(Path.home()))) / "PedeJaProspector"
+    APP_DIR = Path(os.getenv("APPDATA", str(Path.home()))) / "Disparador"
 
-DB_PATH     = APP_DIR / "leads.db"
-CONFIG_PATH = APP_DIR / "config.json"
-MUNI_PATH   = BASE_DIR / "assets" / "municipios.json"
+DB_PATH      = APP_DIR / "posts.db"
+CONFIG_PATH  = APP_DIR / "config.json"
+UPLOADS_DIR  = APP_DIR / "uploads"
 APP_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR.mkdir(exist_ok=True)
+
+ALLOWED_IMAGE = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_VIDEO = {".mp4", ".mov", ".m4v"}
 
 # ── Flask ──────────────────────────────────────────────────────────────────────
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["JSON_ENSURE_ASCII"] = False
+app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB
 
-# ── Shared data ────────────────────────────────────────────────────────────────
-@dataclass
-class Lead:
-    nome: str
-    endereco: str = ""
-    telefone: str = ""
-    site: str = ""
-    maps_url: str = ""
-    cidade: str = ""
-    estado: str = ""
-    segmento: str = ""
-    place_id: str = ""
-
+# ── Config ─────────────────────────────────────────────────────────────────────
 def load_config() -> dict:
     cfg = {}
-    # Variável de ambiente tem prioridade (produção/nuvem)
-    env_key = os.getenv("GOOGLE_API_KEY", "")
-    if env_key:
-        cfg["api_key"] = env_key
     if CONFIG_PATH.exists():
         try:
-            file_cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-            # Mescla: env var sobrepõe arquivo em produção
-            if not env_key and file_cfg.get("api_key"):
-                cfg["api_key"] = file_cfg["api_key"]
-            if file_cfg.get("message"):
-                cfg["message"] = file_cfg["message"]
+            cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         except Exception:
             pass
+    # env vars sobrescrevem
+    for env, key in [("EVO_URL","evo_url"),("EVO_TOKEN","evo_token"),
+                     ("EVO_INSTANCE","evo_instance"),("IG_USER_ID","ig_user_id"),
+                     ("IG_TOKEN","ig_token"),("APP_URL","app_url")]:
+        val = os.getenv(env, "")
+        if val:
+            cfg[key] = val
     return cfg
 
 def save_config(data: dict):
-    CONFIG_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    current = load_config()
+    current.update(data)
+    CONFIG_PATH.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
 
+# ── Database ───────────────────────────────────────────────────────────────────
 def init_db():
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("""CREATE TABLE IF NOT EXISTS leads (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT, endereco TEXT, telefone TEXT, site TEXT,
-        maps_url TEXT, cidade TEXT, estado TEXT, segmento TEXT,
-        place_id TEXT UNIQUE, created_at TEXT
+    conn.execute("""CREATE TABLE IF NOT EXISTS posts (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        caption     TEXT    DEFAULT '',
+        filename    TEXT    DEFAULT '',
+        media_type  TEXT    DEFAULT 'image',
+        wa_groups   TEXT    DEFAULT '[]',
+        ig_feed     INTEGER DEFAULT 0,
+        ig_stories  INTEGER DEFAULT 0,
+        ig_reels    INTEGER DEFAULT 0,
+        scheduled_at TEXT,
+        status      TEXT    DEFAULT 'pending',
+        created_at  TEXT,
+        sent_at     TEXT,
+        result      TEXT    DEFAULT '{}'
     )""")
     conn.commit(); conn.close()
 
-def save_leads_db(leads: list[Lead]):
+def db():
     conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    for l in leads:
-        cur.execute("""INSERT OR IGNORE INTO leads
-            (nome,endereco,telefone,site,maps_url,cidade,estado,segmento,place_id,created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (l.nome,l.endereco,l.telefone,l.site,l.maps_url,
-             l.cidade,l.estado,l.segmento,l.place_id,
-             datetime.now().isoformat(timespec="seconds")))
-    conn.commit(); conn.close()
+    conn.row_factory = sqlite3.Row
+    return conn
 
-def normalize_phone(raw: str) -> str:
-    digits = re.sub(r"\D", "", raw or "")
-    if not digits: return ""
-    if digits.startswith("55"): return digits
-    if len(digits) in (10, 11): return "55" + digits
-    return digits
-
-def load_municipios() -> dict:
-    if MUNI_PATH.exists():
-        return json.loads(MUNI_PATH.read_text(encoding="utf-8"))
-    return {}
-
-MUNICIPIOS = load_municipios()
 init_db()
 
-# ── API Routes ─────────────────────────────────────────────────────────────────
+# ── WhatsApp / Evolution API ───────────────────────────────────────────────────
+def _evo_headers(cfg):
+    return {"apikey": cfg.get("evo_token", ""), "Content-Type": "application/json"}
+
+def wa_get_groups(cfg) -> tuple[list, str]:
+    base     = cfg.get("evo_url", "").rstrip("/")
+    instance = cfg.get("evo_instance", "")
+    if not base or not instance:
+        return [], "Evolution API não configurada"
+    try:
+        r = requests.get(
+            f"{base}/group/fetchAllGroups/{instance}?getParticipants=false",
+            headers=_evo_headers(cfg), timeout=15
+        )
+        if r.status_code != 200:
+            return [], f"HTTP {r.status_code}"
+        data = r.json()
+        groups = [{"id": g.get("id",""), "name": g.get("subject", g.get("id",""))}
+                  for g in (data if isinstance(data, list) else [])]
+        return sorted(groups, key=lambda g: g["name"].lower()), ""
+    except Exception as exc:
+        return [], str(exc)
+
+def wa_send_image(group_id: str, caption: str, filepath: Path, cfg) -> tuple[bool, str]:
+    base     = cfg.get("evo_url", "").rstrip("/")
+    instance = cfg.get("evo_instance", "")
+    try:
+        with open(filepath, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+        ext      = filepath.suffix.lower().lstrip(".")
+        mimetype = f"image/{ext}" if ext != "jpg" else "image/jpeg"
+        r = requests.post(
+            f"{base}/message/sendMedia/{instance}",
+            headers=_evo_headers(cfg),
+            json={"number": group_id, "mediatype": "image",
+                  "mimetype": mimetype, "caption": caption, "media": b64},
+            timeout=60
+        )
+        if r.status_code in (200, 201):
+            return True, ""
+        return False, f"HTTP {r.status_code}: {r.text[:300]}"
+    except Exception as exc:
+        return False, str(exc)
+
+def wa_send_video(group_id: str, caption: str, filepath: Path, cfg) -> tuple[bool, str]:
+    base     = cfg.get("evo_url", "").rstrip("/")
+    instance = cfg.get("evo_instance", "")
+    try:
+        with open(filepath, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+        r = requests.post(
+            f"{base}/message/sendMedia/{instance}",
+            headers=_evo_headers(cfg),
+            json={"number": group_id, "mediatype": "video",
+                  "mimetype": "video/mp4", "caption": caption, "media": b64},
+            timeout=120
+        )
+        if r.status_code in (200, 201):
+            return True, ""
+        return False, f"HTTP {r.status_code}: {r.text[:300]}"
+    except Exception as exc:
+        return False, str(exc)
+
+def wa_send(group_id: str, caption: str, filepath: Path, media_type: str, cfg) -> tuple[bool, str]:
+    if media_type == "video":
+        return wa_send_video(group_id, caption, filepath, cfg)
+    return wa_send_image(group_id, caption, filepath, cfg)
+
+# ── Instagram Graph API ────────────────────────────────────────────────────────
+IG_BASE = "https://graph.instagram.com/v21.0"
+
+def _ig_params(cfg):
+    return {"access_token": cfg.get("ig_token", "")}
+
+def ig_media_url(filename: str, cfg) -> str:
+    base = cfg.get("app_url", "").rstrip("/")
+    return f"{base}/api/media/{filename}"
+
+def ig_create_container(media_url: str, caption: str, dest: str, cfg) -> tuple[str, str]:
+    """
+    dest: 'feed' | 'stories' | 'reels'
+    Retorna (container_id, erro)
+    """
+    ig_id  = cfg.get("ig_user_id", "")
+    params = _ig_params(cfg)
+    is_video = any(media_url.lower().endswith(ext) for ext in (".mp4",".mov",".m4v"))
+
+    body: dict = {}
+    if dest == "feed":
+        if is_video:
+            body = {"video_url": media_url, "media_type": "VIDEO", "caption": caption}
+        else:
+            body = {"image_url": media_url, "caption": caption}
+    elif dest == "stories":
+        if is_video:
+            body = {"video_url": media_url, "media_type": "STORIES"}
+        else:
+            body = {"image_url": media_url, "media_type": "STORIES"}
+    elif dest == "reels":
+        body = {"video_url": media_url, "media_type": "REELS", "caption": caption}
+
+    try:
+        r = requests.post(f"{IG_BASE}/{ig_id}/media", params=params, json=body, timeout=30)
+        data = r.json()
+        if "id" in data:
+            return data["id"], ""
+        return "", data.get("error", {}).get("message", str(data))
+    except Exception as exc:
+        return "", str(exc)
+
+def ig_wait_ready(container_id: str, cfg, max_wait=300) -> tuple[bool, str]:
+    """Aguarda o container de vídeo ficar pronto (status FINISHED)."""
+    params = _ig_params(cfg)
+    deadline = time.time() + max_wait
+    while time.time() < deadline:
+        try:
+            r = requests.get(
+                f"{IG_BASE}/{container_id}",
+                params={**params, "fields": "status_code,status"},
+                timeout=15
+            )
+            data = r.json()
+            code = data.get("status_code", "")
+            if code == "FINISHED":
+                return True, ""
+            if code == "ERROR":
+                return False, data.get("status", "Erro no processamento")
+        except Exception:
+            pass
+        time.sleep(10)
+    return False, "Timeout aguardando processamento do vídeo"
+
+def ig_publish(container_id: str, cfg) -> tuple[bool, str]:
+    ig_id  = cfg.get("ig_user_id", "")
+    params = _ig_params(cfg)
+    try:
+        r = requests.post(
+            f"{IG_BASE}/{ig_id}/media_publish",
+            params=params,
+            json={"creation_id": container_id},
+            timeout=30
+        )
+        data = r.json()
+        if "id" in data:
+            return True, ""
+        return False, data.get("error", {}).get("message", str(data))
+    except Exception as exc:
+        return False, str(exc)
+
+def ig_post(media_url: str, caption: str, dest: str, cfg, is_video: bool) -> tuple[bool, str]:
+    cid, err = ig_create_container(media_url, caption, dest, cfg)
+    if err:
+        return False, f"Container: {err}"
+    if is_video:
+        ok, err = ig_wait_ready(cid, cfg)
+        if not ok:
+            return False, f"Processamento: {err}"
+    return ig_publish(cid, cfg)
+
+# ── Post Processor ─────────────────────────────────────────────────────────────
+def process_post(post_id: int):
+    cfg = load_config()
+    conn = db()
+    row  = conn.execute("SELECT * FROM posts WHERE id=?", (post_id,)).fetchone()
+    if not row:
+        conn.close(); return
+
+    conn.execute("UPDATE posts SET status='sending' WHERE id=?", (post_id,))
+    conn.commit(); conn.close()
+
+    caption    = row["caption"] or ""
+    filename   = row["filename"] or ""
+    media_type = row["media_type"] or "image"
+    wa_groups  = json.loads(row["wa_groups"] or "[]")
+    ig_feed    = bool(row["ig_feed"])
+    ig_stories = bool(row["ig_stories"])
+    ig_reels   = bool(row["ig_reels"])
+    filepath   = UPLOADS_DIR / filename
+    is_video   = media_type == "video"
+
+    result = {"wa": {}, "ig": {}}
+    errors = []
+
+    # WhatsApp groups
+    for g in wa_groups:
+        gid  = g.get("id", g) if isinstance(g, dict) else g
+        name = g.get("name", gid) if isinstance(g, dict) else gid
+        ok, err = wa_send(gid, caption, filepath, media_type, cfg)
+        result["wa"][name] = "ok" if ok else err
+        if not ok:
+            errors.append(f"WA {name}: {err}")
+
+    # Instagram
+    media_url = ig_media_url(filename, cfg)
+    if ig_feed:
+        ok, err = ig_post(media_url, caption, "feed", cfg, is_video)
+        result["ig"]["feed"] = "ok" if ok else err
+        if not ok: errors.append(f"IG Feed: {err}")
+
+    if ig_stories:
+        ok, err = ig_post(media_url, "", "stories", cfg, is_video)
+        result["ig"]["stories"] = "ok" if ok else err
+        if not ok: errors.append(f"IG Stories: {err}")
+
+    if ig_reels:
+        ok, err = ig_post(media_url, caption, "reels", cfg, is_video)
+        result["ig"]["reels"] = "ok" if ok else err
+        if not ok: errors.append(f"IG Reels: {err}")
+
+    final_status = "partial" if errors and (result["wa"] or result["ig"]) else \
+                   "failed"  if errors else "sent"
+
+    conn = db()
+    conn.execute("""UPDATE posts SET status=?, sent_at=?, result=? WHERE id=?""",
+                 (final_status,
+                  datetime.now().isoformat(timespec="seconds"),
+                  json.dumps(result, ensure_ascii=False),
+                  post_id))
+    conn.commit(); conn.close()
+
+# ── Scheduler Thread ───────────────────────────────────────────────────────────
+def _scheduler_loop():
+    while True:
+        try:
+            now  = datetime.now().strftime("%Y-%m-%dT%H:%M")
+            conn = db()
+            rows = conn.execute(
+                "SELECT id FROM posts WHERE status='pending' AND scheduled_at<=?",
+                (now + ":59",)
+            ).fetchall()
+            conn.close()
+            for row in rows:
+                threading.Thread(target=process_post, args=(row["id"],), daemon=True).start()
+        except Exception as exc:
+            print(f"[scheduler] {exc}")
+        time.sleep(30)
+
+threading.Thread(target=_scheduler_loop, daemon=True, name="scheduler").start()
+
+# ── Routes ─────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/api/estados")
-def api_estados():
-    return jsonify(sorted(MUNICIPIOS.keys()))
+# ── Media serve ────────────────────────────────────────────────────────────────
+@app.route("/api/media/<filename>")
+def api_media(filename):
+    safe = Path(filename).name  # evita path traversal
+    path = UPLOADS_DIR / safe
+    if not path.exists():
+        return "Not found", 404
+    return send_file(path)
 
-@app.route("/api/cidades/<estado>")
-def api_cidades(estado):
-    return jsonify(MUNICIPIOS.get(estado.upper(), []))
+# ── Upload ─────────────────────────────────────────────────────────────────────
+@app.route("/api/upload", methods=["POST"])
+def api_upload():
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"ok": False, "error": "Nenhum arquivo enviado"})
 
-@app.route("/api/config", methods=["GET", "POST"])
-def api_config():
-    if request.method == "POST":
-        data = request.get_json()
-        cfg = load_config()
-        if "api_key" in data:
-            cfg["api_key"] = data["api_key"]
-        if "message" in data:
-            cfg["message"] = data["message"]
-        save_config(cfg)
-        return jsonify({"ok": True})
-    return jsonify(load_config())
+    ext = Path(f.filename).suffix.lower()
+    if ext in ALLOWED_IMAGE:
+        media_type = "image"
+    elif ext in ALLOWED_VIDEO:
+        media_type = "video"
+    else:
+        return jsonify({"ok": False, "error": f"Formato não suportado: {ext}"})
 
-@app.route("/api/search")
-def api_search():
-    """SSE endpoint — envia progresso + leads em tempo real."""
-    api_key  = request.args.get("api_key", "").strip()
-    segmento = request.args.get("segmento", "").strip()
-    estado   = request.args.get("estado", "").strip()
-    cidade   = request.args.get("cidade", "").strip()
-    try:
-        max_r = int(request.args.get("max", 20))
-    except ValueError:
-        max_r = 20
-    try:
-        lat = float(request.args.get("lat", ""))
-        lng = float(request.args.get("lng", ""))
-        has_location = True
-    except (ValueError, TypeError):
-        lat = lng = 0.0
-        has_location = False
+    filename = f"{int(time.time())}_{uuid.uuid4().hex[:8]}{ext}"
+    f.save(str(UPLOADS_DIR / filename))
+    return jsonify({"ok": True, "filename": filename, "media_type": media_type})
 
-    def generate():
-        def send(event: str, data):
-            payload = json.dumps(data, ensure_ascii=False)
-            yield f"event: {event}\ndata: {payload}\n\n"
+# ── Groups ─────────────────────────────────────────────────────────────────────
+@app.route("/api/wa/groups")
+def api_wa_groups():
+    cfg    = load_config()
+    groups, err = wa_get_groups(cfg)
+    if err and not groups:
+        return jsonify({"ok": False, "error": err})
+    return jsonify({"ok": True, "groups": groups})
 
-        if not api_key:
-            yield from send("error", {"msg": "API Key não informada."})
-            return
-        if not segmento:
-            yield from send("error", {"msg": "Informe o segmento."})
-            return
-
-        leads: list[dict] = []
-        next_token = None
-
-        if has_location:
-            base_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-            params = {
-                "location": f"{lat},{lng}",
-                "rankby": "distance",
-                "keyword": segmento,
-                "key": api_key,
-                "language": "pt-BR",
-            }
-        else:
-            base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-            params = {"query": f"{segmento} em {cidade} {estado} Brasil",
-                      "key": api_key, "language": "pt-BR", "region": "br"}
-
-        try:
-            while len(leads) < max_r:
-                if next_token:
-                    time.sleep(2.2)
-                    params = {"pagetoken": next_token, "key": api_key,
-                              "language": "pt-BR", "region": "br"}
-
-                pct = min(90, int(len(leads) / max(1, max_r) * 100))
-                yield from send("progress", {"pct": pct, "msg": "Buscando estabelecimentos…"})
-
-                resp = requests.get(base_url, params=params, timeout=25)
-                data = resp.json()
-                status = data.get("status")
-                if status not in ("OK", "ZERO_RESULTS"):
-                    yield from send("error", {"msg": data.get("error_message") or status})
-                    return
-                if status == "ZERO_RESULTS":
-                    break
-
-                for item in data.get("results", []):
-                    if len(leads) >= max_r:
-                        break
-                    place_id = item.get("place_id", "")
-                    details  = _get_details(place_id, api_key)
-                    lead = {
-                        "nome":     details.get("name") or item.get("name", ""),
-                        "endereco": details.get("formatted_address") or item.get("formatted_address", ""),
-                        "telefone": details.get("formatted_phone_number", ""),
-                        "site":     details.get("website", ""),
-                        "maps_url": details.get("url", ""),
-                        "cidade":   cidade,
-                        "estado":   estado,
-                        "segmento": segmento,
-                        "place_id": place_id,
-                    }
-                    leads.append(lead)
-                    pct2 = min(95, int(len(leads) / max(1, max_r) * 100))
-                    yield from send("lead", {"pct": pct2, "lead": lead})
-
-                next_token = data.get("next_page_token")
-                if not next_token:
-                    break
-
-            # Save to DB
-            db_leads = [Lead(**l) for l in leads]
-            save_leads_db(db_leads)
-            yield from send("done", {"total": len(leads)})
-
-        except Exception as exc:
-            yield from send("error", {"msg": str(exc)})
-
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-def _get_details(place_id: str, api_key: str) -> dict:
-    if not place_id:
-        return {}
-    try:
-        resp = requests.get(
-            "https://maps.googleapis.com/maps/api/place/details/json",
-            params={"place_id": place_id,
-                    "fields": "name,formatted_address,formatted_phone_number,website,url",
-                    "key": api_key, "language": "pt-BR"},
-            timeout=25,
-        )
-        data = resp.json()
-        return data.get("result", {}) if data.get("status") == "OK" else {}
-    except Exception:
-        return {}
-
-@app.route("/api/leads")
-def api_leads():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+# ── Posts ──────────────────────────────────────────────────────────────────────
+@app.route("/api/posts", methods=["GET"])
+def api_posts():
+    conn = db()
     rows = conn.execute(
-        "SELECT * FROM leads ORDER BY created_at DESC LIMIT 200"
+        "SELECT * FROM posts ORDER BY scheduled_at DESC LIMIT 100"
     ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
-@app.route("/api/export/csv")
-def api_export_csv():
-    leads_data = request.args.get("data", "")
-    if not leads_data:
-        return "Sem dados", 400
-    leads = json.loads(leads_data)
-    if not leads:
-        return "Sem leads", 400
+@app.route("/api/posts", methods=["POST"])
+def api_create_post():
+    data = request.get_json() or {}
+    filename   = data.get("filename", "")
+    media_type = data.get("media_type", "image")
+    caption    = data.get("caption", "")
+    wa_groups  = data.get("wa_groups", [])
+    ig_feed    = int(bool(data.get("ig_feed")))
+    ig_stories = int(bool(data.get("ig_stories")))
+    ig_reels   = int(bool(data.get("ig_reels")))
+    scheduled_at = data.get("scheduled_at", "")
 
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=leads[0].keys(), delimiter=";")
-    writer.writeheader()
-    writer.writerows(leads)
-    output.seek(0)
+    if not filename:
+        return jsonify({"ok": False, "error": "Nenhum arquivo selecionado"})
+    if not wa_groups and not ig_feed and not ig_stories and not ig_reels:
+        return jsonify({"ok": False, "error": "Selecione ao menos um destino"})
+    if not scheduled_at:
+        return jsonify({"ok": False, "error": "Defina o horário de envio"})
 
-    return Response(
-        "﻿" + output.getvalue(),   # BOM para Excel
-        mimetype="text/csv; charset=utf-8-sig",
-        headers={"Content-Disposition": "attachment; filename=leads_pedeja.csv"},
-    )
+    conn = db()
+    cur = conn.execute("""INSERT INTO posts
+        (caption,filename,media_type,wa_groups,ig_feed,ig_stories,ig_reels,
+         scheduled_at,status,created_at)
+        VALUES (?,?,?,?,?,?,?,?,'pending',?)""",
+        (caption, filename, media_type, json.dumps(wa_groups),
+         ig_feed, ig_stories, ig_reels, scheduled_at,
+         datetime.now().isoformat(timespec="seconds")))
+    post_id = cur.lastrowid
+    conn.commit(); conn.close()
+    return jsonify({"ok": True, "id": post_id})
 
+@app.route("/api/posts/<int:post_id>/send", methods=["POST"])
+def api_send_now(post_id):
+    """Disparo manual imediato."""
+    conn = db()
+    row = conn.execute("SELECT status FROM posts WHERE id=?", (post_id,)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"ok": False, "error": "Post não encontrado"})
+    if row["status"] == "sending":
+        return jsonify({"ok": False, "error": "Já está sendo enviado"})
+    threading.Thread(target=process_post, args=(post_id,), daemon=True).start()
+    return jsonify({"ok": True})
+
+@app.route("/api/posts/<int:post_id>", methods=["DELETE"])
+def api_delete_post(post_id):
+    conn = db()
+    row = conn.execute("SELECT filename, status FROM posts WHERE id=?", (post_id,)).fetchone()
+    if row and row["status"] == "pending":
+        try:
+            (UPLOADS_DIR / row["filename"]).unlink(missing_ok=True)
+        except Exception:
+            pass
+    conn.execute("DELETE FROM posts WHERE id=?", (post_id,))
+    conn.commit(); conn.close()
+    return jsonify({"ok": True})
+
+@app.route("/api/posts/stream")
+def api_posts_stream():
+    """SSE – notifica mudanças de status em tempo real."""
+    def generate():
+        last = {}
+        for _ in range(600):  # max 10 min
+            conn = db()
+            rows = conn.execute(
+                "SELECT id, status, sent_at, result FROM posts WHERE status IN ('sending','pending')"
+            ).fetchall()
+            conn.close()
+            for r in rows:
+                key = f"{r['id']}-{r['status']}-{r['sent_at']}"
+                if last.get(r["id"]) != key:
+                    last[r["id"]] = key
+                    yield f"data: {json.dumps(dict(r))}\n\n"
+            time.sleep(2)
+    return Response(stream_with_context(generate()), mimetype="text/event-stream",
+                    headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
+
+# ── Config ─────────────────────────────────────────────────────────────────────
+@app.route("/api/config", methods=["GET","POST"])
+def api_config():
+    if request.method == "POST":
+        save_config(request.get_json() or {})
+        return jsonify({"ok": True})
+    cfg = load_config()
+    # Não expõe token completo, só indica se existe
+    safe = {k: v for k, v in cfg.items()}
+    return jsonify(safe)
+
+@app.route("/api/config/evo-test", methods=["POST"])
+def api_evo_test():
+    data     = request.get_json() or {}
+    base     = data.get("evo_url","").rstrip("/")
+    token    = data.get("evo_token","")
+    instance = data.get("evo_instance","")
+    if not all([base, token, instance]):
+        return jsonify({"ok": False, "error": "Preencha URL, Token e Instância"})
+    try:
+        r = requests.get(f"{base}/instance/connectionState/{instance}",
+                         headers={"apikey": token}, timeout=10)
+        if r.status_code == 200:
+            state = r.json().get("instance", {}).get("state", "unknown")
+            return jsonify({"ok": True, "state": state})
+        return jsonify({"ok": False, "error": f"HTTP {r.status_code}"})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)})
+
+@app.route("/api/config/ig-test", methods=["POST"])
+def api_ig_test():
+    data  = request.get_json() or {}
+    ig_id = data.get("ig_user_id","")
+    token = data.get("ig_token","")
+    if not ig_id or not token:
+        return jsonify({"ok": False, "error": "Preencha User ID e Token"})
+    try:
+        r = requests.get(f"{IG_BASE}/{ig_id}",
+                         params={"fields":"username,name","access_token":token}, timeout=10)
+        data = r.json()
+        if "username" in data:
+            return jsonify({"ok": True, "username": data["username"]})
+        return jsonify({"ok": False, "error": data.get("error",{}).get("message","Erro")})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)})
+
+# ── Main ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import socket
     host = "0.0.0.0"
     port = int(os.getenv("PORT", 5000))
-
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -303,13 +517,10 @@ if __name__ == "__main__":
     except Exception:
         local_ip = "127.0.0.1"
 
-    print("\n" + "═" * 52)
-    print("  PedeJá Prospector  –  Web App")
-    print("═" * 52)
+    print("\n" + "═"*52)
+    print("  Disparador de Conteúdo – Web App")
+    print("═"*52)
     print(f"  💻  PC:      http://localhost:{port}")
     print(f"  📱  Celular: http://{local_ip}:{port}")
-    print("  (celular e PC precisam estar no mesmo Wi-Fi)")
-    print("═" * 52)
-    print("  Pressione Ctrl+C para encerrar.\n")
-
+    print("═"*52 + "\n")
     app.run(host=host, port=port, debug=False, threaded=True)
